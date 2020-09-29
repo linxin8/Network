@@ -1,0 +1,10 @@
+CMakeFiles
+cmake_install.cmake
+*.a
+CMakeCache.txt
+network
+build
+.vscode
+Makefile
+core
+old
