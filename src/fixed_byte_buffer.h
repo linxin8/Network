@@ -15,12 +15,12 @@ class FixedByteBuffer : Noncopyable
 {
 public:
     // total size
-    constexpr size_t capacity()
+    constexpr size_t capacity() const
     {
         return N;
     }
     // the size of held elements
-    size_t size()
+    size_t size() const
     {
         return _size;
     }
@@ -126,13 +126,13 @@ public:
     }
 
     // inner data
-    void* rowData()
+    const void* rowData() const
     {
         return _data;
     }
 
     // inner data in string format
-    char* toCString()
+    const char* toCString() const
     {
         return static_cast<char*>(_data);
     }

@@ -1,15 +1,14 @@
 #pragma once
+#include "circle_queue.h"
 #include "fixed_byte_buffer.h"
 #include <bitset>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <queue>
+#include <vector>
 
-class AsyncLogging : Noncopyable
-{
-};
-
-enum Level
+enum class LoggerLevel
 {
     trace,
     debug,
@@ -34,11 +33,29 @@ public:
     LoggerBuffer() = default;
     LoggerBuffer(const char* file, const char* function, int line);
     ~LoggerBuffer() = default;
+    size_t getAvaliableSize()
+    {
+        return _buffer.availableSize();
+    }
     template <typename T>
     LoggerBuffer& operator<<(T x)
     {
         _buffer.append(x);
         return *this;
+    }
+
+    void append(const char* data, size_t size)
+    {
+        _buffer.append(data, size);
+    }
+
+    const void* getRowdata() const
+    {
+        return _buffer.rowData();
+    }
+    size_t getSize() const
+    {
+        return _buffer.size();
     }
 
 private:
@@ -48,42 +65,114 @@ private:
 template <size_t N>
 class LogBufferPool : Noncopyable
 {
-    LoggerBuffer& get()
+public:
+    // automatically give back buffer on destruction
+    class BufferAgent
     {
-        int bit = -1;
-        if (_queue.start == _queue.end)
+    public:
+        BufferAgent(LogBufferPool<N>* pool, LoggerBuffer* buffer) : _pool{pool}, _buffer{buffer} {}
+        BufferAgent(BufferAgent&& agent) : _pool{agent._pool}, _buffer{agent._buffer}
         {
-            bit = 0;
+            agent._pool   = nullptr;
+            agent._buffer = nullptr;
         }
-        else
+        BufferAgent(const BufferAgent& agent) = delete;
+        BufferAgent& operator                 =(BufferAgent&& agent)
         {
+            _pool         = agent._pool;
+            _buffer       = agent._buffer;
+            agent._pool   = nullptr;
+            agent._buffer = nullptr;
         }
+        BufferAgent& operator=(const BufferAgent& agent) = delete;
+        ~BufferAgent()
+        {
+            if (_pool != nullptr)
+            {
+                assert(_buffer != nullptr);
+                _pool->giveBack(_buffer);
+            }
+        };
+
+        BufferAgent(BufferAgent&& agent) : _pool{agent._pool}, _buffer{agent._buffer}
+        {
+            agent._pool   = nullptr;
+            agent._buffer = nullptr;
+        }
+        LoggerBuffer& getBuffer()
+        {
+            return *_buffer;
+        }
+
+    private:
+        LogBufferPool* _pool;
+        LoggerBuffer*  _buffer;
+    };
+
+    LogBufferPool()
+    {
+        // init avaliable buffer index
+        for (int i = 0; i < N; i++)
+        {
+            _queue.push(i);
+        }
+    }
+    // get avilable buffer
+    BufferAgent getAvaliableAgent()
+    {
+        assert(!_queue.isEmpty());  // queue is empty, cannnot take any avaliable
+        return {*this,_buffer[_queue.take()};
+    }
+
+    bool isFull() const
+    {
+        return _queue.isFull();
     }
 
 private:
-    LoggerBuffer   _buffer[N];
-    std::bitset<N> _isAvilable[N];
-    int            left[N];
-    int            right[N];
-    struct
+    // give back buffer, it will be avaliable
+    void giveBack(const LoggerBuffer& buffer)
     {
-        int data[N];
-        int start;
-        int end;
-    } _queue;
+        int index = &buffer - _buffer;
+        assert(0 <= index && index < N);
+        _queue.add(index);
+    }
+
+private:
+    LoggerBuffer        _buffer[N];
+    CircleQueue<int, N> _queue;
 };
 
-class AsyLogger : Noncopyable
+class AsyncLogger : Noncopyable
 {
 public:
-    AsyncLogging();
+    AsyncLogger();
     void append(const char* data, size_t size);
 
+    void start()
+    {
+        _isRunning = true;
+    }
+
+    void stop()
+    {
+        _isRunning = false;
+    }
+
 private:
+    // thrad function that write data
+    void writingThreadFunc();
+
 private:
-    std::string                   _logName;
-    int                           _flushInterval;
-    std::unique_ptr<LoggerBuffer> writeBuffer;
+    std::string                                _logName;
+    int                                        _flushInterval;
+    LogBufferPool<64>                          _pool;
+    std::queue<LogBufferPool<64>::BufferAgent> _agentToWrited;
+    LogBufferPool<64>::BufferAgent             _currentAgent;
+    std::mutex                                 _mutex;
+    // condition that data is ready to write
+    std::condition_variable _condition;
+    bool                    _isRunning;
 };
 
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc
