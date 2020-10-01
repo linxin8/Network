@@ -134,7 +134,7 @@ public:
     // inner data in string format
     const char* toCString() const
     {
-        return static_cast<char*>(_data);
+        return static_cast<const char*>(_data);
     }
 
     // reinterpret buffer as T object

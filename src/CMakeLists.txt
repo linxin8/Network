@@ -6,6 +6,8 @@ add_library(net SHARED
 fixed_byte_buffer.cpp
 core_dump.cpp
 file.cpp
+thread.cpp
+count_down_latch.cpp
 )
 add_executable(network main.cpp)
  

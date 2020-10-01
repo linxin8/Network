@@ -93,12 +93,6 @@ public:
                 _pool->giveBack(_buffer);
             }
         };
-
-        BufferAgent(BufferAgent&& agent) : _pool{agent._pool}, _buffer{agent._buffer}
-        {
-            agent._pool   = nullptr;
-            agent._buffer = nullptr;
-        }
         LoggerBuffer& getBuffer()
         {
             return *_buffer;
@@ -121,7 +115,7 @@ public:
     BufferAgent getAvaliableAgent()
     {
         assert(!_queue.isEmpty());  // queue is empty, cannnot take any avaliable
-        return {*this,_buffer[_queue.take()};
+        return {*this, _buffer[_queue.take()]};
     }
 
     bool isFull() const

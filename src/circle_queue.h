@@ -45,15 +45,15 @@ private:
     int next(int x)
     {
         int ret = x + 1;
-        if (ret >= N)
+        if (ret >= size)
         {
-            ret -= N;
+            ret -= size;
         }
         return ret;
     }
 
 private:
-    T   data[N]{};
+    T   data[size]{};
     int start = 0;
     int end   = 0;
 };
