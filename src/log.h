@@ -1,6 +1,7 @@
 #pragma once
 #include "circle_queue.h"
 #include "fixed_byte_buffer.h"
+#include "thread.h"
 #include <bitset>
 #include <condition_variable>
 #include <memory>
@@ -83,6 +84,7 @@ public:
             _buffer       = agent._buffer;
             agent._pool   = nullptr;
             agent._buffer = nullptr;
+            return *this;
         }
         BufferAgent& operator=(const BufferAgent& agent) = delete;
         ~BufferAgent()
@@ -90,7 +92,7 @@ public:
             if (_pool != nullptr)
             {
                 assert(_buffer != nullptr);
-                _pool->giveBack(_buffer);
+                _pool->giveBack(*_buffer);
             }
         };
         LoggerBuffer& getBuffer()
@@ -115,7 +117,7 @@ public:
     BufferAgent getAvaliableAgent()
     {
         assert(!_queue.isEmpty());  // queue is empty, cannnot take any avaliable
-        return {*this, _buffer[_queue.take()]};
+        return {this, &_buffer[_queue.take()]};
     }
 
     bool isFull() const
@@ -129,7 +131,7 @@ private:
     {
         int index = &buffer - _buffer;
         assert(0 <= index && index < N);
-        _queue.add(index);
+        _queue.push(index);
     }
 
 private:
@@ -146,11 +148,14 @@ public:
     void start()
     {
         _isRunning = true;
+        _thread.start();
     }
 
     void stop()
     {
         _isRunning = false;
+        _condition.notify_all();
+        _thread.join();
     }
 
 private:
@@ -167,6 +172,7 @@ private:
     // condition that data is ready to write
     std::condition_variable _condition;
     bool                    _isRunning;
+    Thread                  _thread;
 };
 
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc

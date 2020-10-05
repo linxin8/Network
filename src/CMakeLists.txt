@@ -8,6 +8,7 @@ core_dump.cpp
 file.cpp
 thread.cpp
 count_down_latch.cpp
+log.cpp
 )
 add_executable(network main.cpp)
  

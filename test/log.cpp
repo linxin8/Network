@@ -42,6 +42,23 @@ TEST(LoggerBuffer, op)
            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
 }
 
+TEST(AsynLoggerBuffer, run)
+{
+    LoggerBuffer buffer;
+    const char   str[20] = "abcd";
+    buffer << "123"
+           << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
+    AsyncLogger asyn;
+    asyn.start();
+    for (int i = 0; i < 100; i++)
+    {
+        auto str = std::to_string(i);
+        asyn.append(str.c_str(), str.size());
+        asyn.append("\n", 1);
+    }
+    asyn.stop();
+}
+
 int main(int argc, char* argv[])
 {
     enable_core_dump();

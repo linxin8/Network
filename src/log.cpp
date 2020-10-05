@@ -5,7 +5,7 @@
 
 AsyncLogger::AsyncLogger()
     : _logName{"log.txt"}, _flushInterval{3}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
-      _condition{}, _isRunning{}
+      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}
 {
 }
 
@@ -14,7 +14,7 @@ void AsyncLogger::append(const char* data, size_t size)
     std::lock_guard<std::mutex> guard{_mutex};
     if (_pool.isFull())
     {
-        fprintf(stderr, "pool is full, cannot append message %*s\n", size, data);
+        fprintf(stderr, "pool is full, cannot append message %*s\n", static_cast<int>(size), data);
         return;
     }
     // not enough space, save and replace current buffer
