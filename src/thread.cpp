@@ -37,15 +37,16 @@ namespace CurrentThread
     {
         return _tid;
     }
-    inline bool isMainThread()
+    bool isMainThread()
     {
         return _tid == getpid();
     }
-    void sleep(int64_t usecond)
+    void sleep(int64_t microseconds)
     {
-        timespec ts;
-        ts.tv_sec  = static_cast<time_t>(usecond / Timestamp::microsecondsPerSecond);
-        ts.tv_nsec = static_cast<long>(usecond % Timestamp::microsecondsPerSecond * 1000);
+        timespec      ts;
+        constexpr int microsecondsPerSecond = 1000 * 1000;
+        ts.tv_sec                           = static_cast<time_t>(microseconds / microsecondsPerSecond);
+        ts.tv_nsec                          = static_cast<long>(microseconds % microsecondsPerSecond * 1000);
         nanosleep(&ts, NULL);
     }
     std::string getStackTrace(bool demangle)

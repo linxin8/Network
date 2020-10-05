@@ -9,8 +9,8 @@ namespace CurrentThread
     const std::string& getName();
     const std::string& getTidString();
     pid_t              getTid();
-    inline bool        isMainThread();
-    void               sleep(int64_t usecond);
+    bool               isMainThread();
+    void               sleep(int64_t microseconds);
     void               setName(std::string name);
     // @demangle: whether use demangle to deformat function name
     std::string getStackTrace(bool demangle = true);
