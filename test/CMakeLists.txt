@@ -10,3 +10,8 @@ add_executable(file file.cpp)
 
 target_link_libraries(file ${GTEST_LIBRARIES} net pthread )
 
+
+add_executable(thread thread.cpp)
+
+target_link_libraries(thread ${GTEST_LIBRARIES} net pthread )
+
