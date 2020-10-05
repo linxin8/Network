@@ -8,3 +8,4 @@ build
 Makefile
 core
 old
+*.txt
