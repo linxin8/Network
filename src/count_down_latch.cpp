@@ -6,7 +6,7 @@ void CountDownLatch::wait()
 {
     std::unique_lock<std::mutex> unique_lock{_mutex};
     // wait之前需要lock，之后需要unlock
-    _condition.wait(unique_lock, [this] { return _count == 1; });
+    _condition.wait(unique_lock, [this] { return _count == 0; });
 }
 
 void CountDownLatch::countDown()
