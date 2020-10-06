@@ -1,7 +1,7 @@
 #include "file.h"
 #include <cassert>
 
-WriteOnlyFile::WriteOnlyFile(const char* path) : _file{fopen(path, "ae")}, _buffer{}, _byteWrited{0}
+WriteOnlyFile::WriteOnlyFile(const char* path) : _file{fopen(path, "w")}, _buffer{}, _byteWrited{0}
 {
     assert(_file);
     setbuffer(_file, _buffer, sizeof(_buffer));

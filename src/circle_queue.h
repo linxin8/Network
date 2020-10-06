@@ -10,6 +10,11 @@ class CircleQueue
     static_assert(size > 1);
 
 public:
+    constexpr size_t getCapacity() const
+    {
+        return size;
+    }
+
     // test if is empty
     bool isEmpty() const
     {
@@ -45,6 +50,11 @@ public:
         _data[_end] = std::move(x);
         _end        = next(_end);
         _length++;
+    }
+
+    size_t getSize() const
+    {
+        return _length;
     }
 
 private:

@@ -34,6 +34,10 @@ public:
     LoggerBuffer() = default;
     LoggerBuffer(const char* file, const char* function, int line);
     ~LoggerBuffer() = default;
+    void clear()
+    {
+        _buffer.clear();
+    }
     size_t getAvaliableSize()
     {
         return _buffer.availableSize();
@@ -92,12 +96,17 @@ public:
             if (_pool != nullptr)
             {
                 assert(_buffer != nullptr);
+                _buffer->clear();
                 _pool->giveBack(*_buffer);
             }
         };
         LoggerBuffer& getBuffer()
         {
             return *_buffer;
+        }
+        bool size() const
+        {
+            return _pool->getSize();
         }
 
     private:
@@ -120,9 +129,14 @@ public:
         return {this, &_buffer[_queue.take()]};
     }
 
-    bool isFull() const
+    bool isEmpty() const
     {
-        return _queue.isFull();
+        return _queue.isEmpty();
+    }
+
+    size_t getSize() const
+    {
+        return _queue.getSize();
     }
 
 private:

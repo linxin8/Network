@@ -1,5 +1,7 @@
 #include "../src/log.h"
 #include "../src/core_dump.h"
+#include <chrono>
+#include <future>
 #include <gtest/gtest.h>
 #include <iostream>
 
@@ -50,12 +52,22 @@ TEST(AsynLoggerBuffer, run)
            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
     AsyncLogger asyn;
     asyn.start();
-    for (int i = 0; i < 100; i++)
+    bool ok     = true;
+    auto future = std::async(std::launch::async, [&ok] {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        ok = false;
+    });
+    int  count  = 0;
+    char data[100];
+    for (int i = 0; i < 100000000000000 && ok; i++)
     {
-        auto str = std::to_string(i);
-        asyn.append(str.c_str(), str.size());
+        count++;
+        // auto str = std::to_string(i);
+        int len = sprintf(data, "%d", i);
+        asyn.append(data, len);
         asyn.append("\n", 1);
     }
+    printf("%d line\n", count);
     asyn.stop();
 }
 

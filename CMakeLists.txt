@@ -11,7 +11,7 @@ project(Network)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS}) 
 set(CXX_FLAGS
- -g
+#  -g
  # -DVALGRIND
  -DCHECK_PTHREAD_RETURN_VALUE
  -D_FILE_OFFSET_BITS=64
