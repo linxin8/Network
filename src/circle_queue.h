@@ -196,6 +196,14 @@ public:
         std::swap(_length, right._length);
     }
 
+    void clear()
+    {
+        while (!isEmpty())
+        {
+            pop();
+        }
+    }
+
 private:
     int next(int x) const
     {
