@@ -10,3 +10,4 @@ core
 old
 *.txt
 callgrind*
+*.sh
