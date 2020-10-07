@@ -15,3 +15,8 @@ add_executable(thread thread.cpp)
 
 target_link_libraries(thread ${GTEST_LIBRARIES} net pthread )
 
+
+add_executable(circle_queue circle_queue.cpp)
+
+target_link_libraries(circle_queue ${GTEST_LIBRARIES} net pthread )
+

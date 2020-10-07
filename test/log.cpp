@@ -1,5 +1,6 @@
 #include "../src/log.h"
 #include "../src/core_dump.h"
+#include <charconv>
 #include <chrono>
 #include <future>
 #include <gtest/gtest.h>
@@ -44,31 +45,47 @@ TEST(LoggerBuffer, op)
            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
 }
 
+void logFun(AsyncLogger& asyn, bool& ok)
+{
+    char data[100];
+    for (int i = 0; i < 100000000 && ok; i++)
+    {
+        // auto result = std::to_chars(data, data + 100, i);
+        // int size   = result.ptr - data;
+        // data[size] = '\n';
+        // asyn.append(data, size + 1);
+        asyn.append("12345678910!@"
+                    "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+                    "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111#$%^&",
+                    200);
+    }
+    printf("end \n");
+}
+
 TEST(AsynLoggerBuffer, run)
 {
+    auto file = std::freopen("stderr.txt", "w", stderr);
+    (void*)file;
     LoggerBuffer buffer;
     const char   str[20] = "abcd";
     buffer << "123"
            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
     AsyncLogger asyn;
     asyn.start();
-    bool ok     = true;
-    auto future = std::async(std::launch::async, [&ok] {
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+    bool ok      = true;
+    auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future  = std::async(std::launch::async, [&] {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        printf("set ok false\n");
         ok = false;
     });
-    int  count  = 0;
-    char data[100];
-    for (int i = 0; i < 100000000000000 && ok; i++)
+    while (ok)
     {
-        count++;
-        // auto str = std::to_string(i);
-        int len = sprintf(data, "%d", i);
-        asyn.append(data, len);
-        asyn.append("\n", 1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    printf("%d line\n", count);
-    asyn.stop();
 }
 
 int main(int argc, char* argv[])

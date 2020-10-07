@@ -58,6 +58,8 @@ public:
     {
         return _buffer.rowData();
     }
+
+    // get size of buffer inserted
     size_t getSize() const
     {
         return _buffer.size();
@@ -157,6 +159,12 @@ class AsyncLogger : Noncopyable
 {
 public:
     AsyncLogger();
+    ~AsyncLogger()
+    {
+        stop();
+    }
+
+    // append log, if logger is stopped, do nothing
     void append(const char* data, size_t size);
 
     void start()
@@ -165,6 +173,7 @@ public:
         _thread.start();
     }
 
+    // write remain data and stop log
     void stop()
     {
         _isRunning = false;
@@ -177,16 +186,20 @@ private:
     void writingThreadFunc();
 
 private:
-    std::string                                _logName;
-    int                                        _flushInterval;
-    LogBufferPool<64>                          _pool;
-    std::queue<LogBufferPool<64>::BufferAgent> _agentToWrited;
-    LogBufferPool<64>::BufferAgent             _currentAgent;
-    std::mutex                                 _mutex;
+    constexpr static size_t fixedSize = 640;
+    using LogBufferPool_t             = LogBufferPool<fixedSize>;
+    std::string                                          _logName;
+    int                                                  _flushInterval;
+    LogBufferPool_t                                      _pool;
+    CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> _agentToWrited;
+    // std::queue<LogBufferPool_t::BufferAgent> _agentToWrited;
+    LogBufferPool_t::BufferAgent _currentAgent;
+    std::mutex                   _mutex;
     // condition that data is ready to write
     std::condition_variable _condition;
     bool                    _isRunning;
     Thread                  _thread;
+    bool                    _isWating;
 };
 
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc

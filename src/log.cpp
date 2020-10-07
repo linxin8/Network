@@ -5,7 +5,7 @@
 
 AsyncLogger::AsyncLogger()
     : _logName{"log.txt"}, _flushInterval{100}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
-      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}
+      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWating{}
 {
 }
 
@@ -16,62 +16,76 @@ void AsyncLogger::append(const char* data, size_t size)
     {
         return;
     }
-    std::lock_guard<std::mutex> guard{_mutex};
-    if (_pool.isEmpty())
+    bool error = false;
     {
-        fprintf(stderr, "pool is full, cannot append message %*s\n", static_cast<int>(size), data);
-        return;
+        std::lock_guard<std::mutex> guard{_mutex};
+        if (_currentAgent.getBuffer().getAvaliableSize() >= size)
+        {
+            auto& buffer = _currentAgent.getBuffer();
+            buffer.append(data, size);
+            _condition.notify_one();  // only one thread is writing data
+        }
+        else if (!_pool.isEmpty())
+        {
+            _agentToWrited.push(std::move(_currentAgent));
+            _currentAgent = std::move(_pool.getAvaliableAgent());
+            auto& buffer  = _currentAgent.getBuffer();
+            buffer.append(data, size);
+            if (_isWating)
+            {
+                _condition.notify_one();  // only one thread is writing data
+            }
+        }
+        else
+        {  // cannot append data
+            error = true;
+        }
     }
-    // printf("avaliable: %ld, require %ld\n", _currentAgent.getBuffer().getAvaliableSize(), size);
-    // not enough space, save and replace current buffer
-    if (_currentAgent.getBuffer().getAvaliableSize() < size)
+    if (error)
     {
-        // printf("new agent avaliable: %ld, require %ld, pool size %ld\n",
-        // _currentAgent.getBuffer().getAvaliableSize(),
-        //        size, _pool.getSize());
-        _agentToWrited.push(std::move(_currentAgent));
-        _currentAgent = std::move(_pool.getAvaliableAgent());
+        // fprintf(stderr, "log pool is full, discard message: %*s\n", static_cast<int>(size), data);
     }
-    auto& buffer = _currentAgent.getBuffer();
-    buffer.append(data, size);
-    _condition.notify_one();  // only one thread is writing data
 }
 
 void AsyncLogger::writingThreadFunc()
 {
-    WriteOnlyFile                              file{_logName.c_str()};
-    std::queue<LogBufferPool<64>::BufferAgent> agnetWritingQueue;
-    std::queue<LogBufferPool<64>::BufferAgent> deleteQueue;
+    WriteOnlyFile                                        file{_logName.c_str()};
+    CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> agnetWritingQueue;
+    CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> deleteQueue;
 
-    // if not running, just write all remained buffer
-    while (_isRunning || !agnetWritingQueue.empty() || _currentAgent.getBuffer().getSize() > 0)
+    // if not running, discard all data
+    while (_isRunning)
     {
-        assert(agnetWritingQueue.empty());  // assume queue is empty
+        assert(agnetWritingQueue.isEmpty());  // assume queue is empty
         {
             std::unique_lock<std::mutex> lock{_mutex};
-            while (!deleteQueue.empty())
+            while (!deleteQueue.isEmpty())
             {
                 deleteQueue.pop();
-                //     static int id = 1;
-                //     printf("pop %d agent size %ld pool size %ld\n", id++, agnetWritingQueue.size(), _pool.getSize());
+                // static int id = 1;
+                // printf("pop %d deleteQueue\n", id++);
             }
-            _condition.wait_for(lock, std::chrono::milliseconds{_flushInterval});
-            if (_agentToWrited.empty())
+            if (!_agentToWrited.isEmpty())
+            {
+                agnetWritingQueue.swap(_agentToWrited);
+            }
+            else if (_currentAgent.getBuffer().getSize() > 0)
             {  // no full buffered data, just wirte current buffer
                 agnetWritingQueue.push(std::move(_currentAgent));
                 _currentAgent = std::move(_pool.getAvaliableAgent());
             }
             else
-            {
-                agnetWritingQueue.swap(_agentToWrited);
+            {  // no data, just wait
+                _isWating = true;
+                _condition.wait_for(lock, std::chrono::milliseconds{_flushInterval});
+                _isWating = false;
             }
         }
-        while (!agnetWritingQueue.empty())  // write all data
+        while (!agnetWritingQueue.isEmpty())  // write all data
         {
-            auto& buffer = agnetWritingQueue.front().getBuffer();
+            auto& buffer = agnetWritingQueue.getFront().getBuffer();
             file.append(static_cast<const char*>(buffer.getRowdata()), buffer.getSize());
-            deleteQueue.push(std::move(agnetWritingQueue.front()));
-            agnetWritingQueue.pop();
+            deleteQueue.push(std::move(agnetWritingQueue.take()));
         }
         file.flush();
     }
