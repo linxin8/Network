@@ -4,8 +4,9 @@
 #include <iostream>
 
 AsyncLogger::AsyncLogger()
-    : _logName{"log.txt"}, _flushInterval{100}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
-      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWating{}
+    : _logName{"log.txt"}, _flushInterval{10}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
+      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWating{},
+      _additionBuffer{}, _isUsingAdditionBuffer{}
 {
 }
 
@@ -16,34 +17,42 @@ void AsyncLogger::append(const char* data, size_t size)
     {
         return;
     }
-    bool error = false;
+    assert(size < fixedSize);  // buffer max size is fixedSize;
     {
         std::lock_guard<std::mutex> guard{_mutex};
-        if (_currentAgent.getBuffer().getAvaliableSize() >= size)
+        if (!_isUsingAdditionBuffer)
         {
-            auto& buffer = _currentAgent.getBuffer();
-            buffer.append(data, size);
-            _condition.notify_one();  // only one thread is writing data
-        }
-        else if (!_pool.isEmpty())
-        {
-            _agentToWrited.push(std::move(_currentAgent));
-            _currentAgent = std::move(_pool.getAvaliableAgent());
-            auto& buffer  = _currentAgent.getBuffer();
-            buffer.append(data, size);
-            if (_isWating)
+            if (_currentAgent.getBuffer().getAvaliableSize() >= size)
             {
-                _condition.notify_one();  // only one thread is writing data
+                auto& buffer = _currentAgent.getBuffer();
+                buffer.append(data, size);
+            }
+            else if (!_pool.isEmpty())
+            {
+                _agentToWrited.push(std::move(_currentAgent));
+                _currentAgent = std::move(_pool.getAvaliableAgent());
+                auto& buffer  = _currentAgent.getBuffer();
+                assert(buffer.getSize() == 0);
+                assert(buffer.getAvaliableSize() > 0);
+                buffer.append(data, size);
+            }
+            else
+            {
+                _isUsingAdditionBuffer = true;
             }
         }
-        else
-        {  // cannot append data
-            error = true;
+        if (_isUsingAdditionBuffer)
+        {  //  append data to addition buffer
+            if (_additionBuffer.empty() || _additionBuffer.back()->getAvaliableSize() < size)
+            {
+                _additionBuffer.push_back(std::make_unique<LoggerBuffer>());
+            }
+            _additionBuffer.back()->append(data, size);
         }
     }
-    if (error)
+    if (_isWating)
     {
-        // fprintf(stderr, "log pool is full, discard message: %*s\n", static_cast<int>(size), data);
+        _condition.notify_one();  // only one thread is writing data
     }
 }
 
@@ -52,18 +61,17 @@ void AsyncLogger::writingThreadFunc()
     WriteOnlyFile                                        file{_logName.c_str()};
     CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> agnetWritingQueue;
     CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> deleteQueue;
-
+    std::vector<std::unique_ptr<LoggerBuffer>>           additionBuffer;
     // if not running, discard all data
     while (_isRunning)
     {
         assert(agnetWritingQueue.isEmpty());  // assume queue is empty
         {
             std::unique_lock<std::mutex> lock{_mutex};
-            while (!deleteQueue.isEmpty())
+            deleteQueue.clear();
+            if (_isUsingAdditionBuffer)
             {
-                deleteQueue.pop();
-                // static int id = 1;
-                // printf("pop %d deleteQueue\n", id++);
+                additionBuffer.swap(_additionBuffer);
             }
             if (!_agentToWrited.isEmpty())
             {
@@ -87,6 +95,15 @@ void AsyncLogger::writingThreadFunc()
             file.append(static_cast<const char*>(buffer.getRowdata()), buffer.getSize());
             deleteQueue.push(std::move(agnetWritingQueue.take()));
         }
-        file.flush();
+        if (_isUsingAdditionBuffer)
+        {
+            for (auto& buffer : additionBuffer)
+            {
+                file.append(static_cast<const char*>(buffer->getRowdata()), buffer->getSize());
+            }
+            additionBuffer.clear();
+            _isUsingAdditionBuffer = false;
+        }
+        // file.flush();
     }
 }

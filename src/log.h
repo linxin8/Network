@@ -186,7 +186,7 @@ private:
     void writingThreadFunc();
 
 private:
-    constexpr static size_t fixedSize = 640;
+    constexpr static size_t fixedSize = 1024;
     using LogBufferPool_t             = LogBufferPool<fixedSize>;
     std::string                                          _logName;
     int                                                  _flushInterval;
@@ -196,10 +196,12 @@ private:
     LogBufferPool_t::BufferAgent _currentAgent;
     std::mutex                   _mutex;
     // condition that data is ready to write
-    std::condition_variable _condition;
-    bool                    _isRunning;
-    Thread                  _thread;
-    bool                    _isWating;
+    std::condition_variable                    _condition;
+    bool                                       _isRunning;
+    Thread                                     _thread;
+    std::atomic_bool                           _isWating;
+    std::vector<std::unique_ptr<LoggerBuffer>> _additionBuffer;
+    std::atomic_bool                           _isUsingAdditionBuffer;
 };
 
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc
