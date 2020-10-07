@@ -51,13 +51,15 @@ void logFun(AsyncLogger& asyn, bool& ok)
     for (int i = 0; i < 100000000 && ok; i++)
     {
         // auto result = std::to_chars(data, data + 100, i);
-        // int size   = result.ptr - data;
-        // data[size] = '\n';
-        // asyn.append(data, size + 1);
+        // int  size   = result.ptr - data;
+        // data[size]  = '\n';
+        // asyn.append(data, size);
+        // std::this_thread::sleep_for(std::chrono::microseconds{1});
         asyn.append("12345678910!@"
                     "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
                     "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111#$%^&",
                     200);
+        // std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     printf("end \n");
 }
@@ -73,19 +75,19 @@ TEST(AsynLoggerBuffer, run)
     AsyncLogger asyn;
     asyn.start();
     bool ok      = true;
-    auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
     auto future  = std::async(std::launch::async, [&] {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         printf("set ok false\n");
         ok = false;
     });
-    while (ok)
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+    // while (ok)
+    // {
+    //     std::this_thread::sleep_for(std::chrono::seconds(1));
+    // }
 }
 
 int main(int argc, char* argv[])
