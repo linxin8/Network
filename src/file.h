@@ -18,6 +18,6 @@ public:
 
 private:
     FILE* _file;
-    char  _buffer[64 * 1024];
-    int   _byteWrited;
+    // char* _buffer = new char[1024 * 1024]; not need alloc buffer manully
+    int _byteWrited;
 };
