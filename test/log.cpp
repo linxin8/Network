@@ -2,6 +2,7 @@
 #include "../src/core_dump.h"
 #include <charconv>
 #include <chrono>
+#include <experimental/source_location>
 #include <future>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -64,30 +65,49 @@ void logFun(AsyncLogger& asyn, bool& ok)
     printf("end \n");
 }
 
-TEST(AsynLoggerBuffer, run)
+// TEST(AsynLoggerBuffer, speedTest)
+// {
+//     auto file = std::freopen("stderr.txt", "w", stderr);
+//     (void*)file;
+//     LoggerBuffer buffer;
+//     const char   str[20] = "abcd";
+//     buffer << "123"
+//            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
+//     AsyncLogger asyn;
+//     asyn.start();
+//     bool ok      = true;
+//     auto future  = std::async(std::launch::async, [&] {
+//         std::this_thread::sleep_for(std::chrono::seconds(1));
+//         printf("set ok false\n");
+//         ok = false;
+//     });
+//     auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+//     auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+//     auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+//     auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+//     // while (ok)
+//     // {
+//     //     std::this_thread::sleep_for(std::chrono::seconds(1));
+//     // }
+// }
+
+TEST(AsynLoggerBuffer, log)
 {
-    auto file = std::freopen("stderr.txt", "w", stderr);
-    (void*)file;
-    LoggerBuffer buffer;
-    const char   str[20] = "abcd";
-    buffer << "123"
-           << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
-    AsyncLogger asyn;
-    asyn.start();
-    bool ok      = true;
-    auto future  = std::async(std::launch::async, [&] {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        printf("set ok false\n");
-        ok = false;
-    });
-    auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-    // while (ok)
-    // {
-    //     std::this_thread::sleep_for(std::chrono::seconds(1));
-    // }
+    for (int i = 0; i < 100000; i++)
+    {
+        LOG_TRACE() << i;
+        LOG_DEBUG() << i;
+        LOG_INFO() << i;
+        LOG_ERROR() << i;
+    }
+    LOG_DEBUG() << "debug log test";
+    std::cout << "debug log test\n";
+    // constexpr auto x = _LOG_FORMAT("debug", __FILE__, __PRETTY_FUNCTION__, _STRINGIZE(__LINE__));
+    // constexpr auto x = _LOG_FORMAT("debug", __builtin_FILE(), __builtin_FUNCTION(), _STRINGIZE(__builtin_LINE()));
+
+    // std::cout << x;
+    // std::cout << __func__;
+    // std::cout << __PRETTY_FUNCTION__;
 }
 
 int main(int argc, char* argv[])

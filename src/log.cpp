@@ -5,7 +5,7 @@
 
 AsyncLogger::AsyncLogger()
     : _logName{"log.txt"}, _flushInterval{10}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
-      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWating{},
+      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWaiting{},
       _additionBuffer{}, _isUsingAdditionBuffer{}
 {
 }
@@ -38,21 +38,19 @@ void AsyncLogger::append(const char* data, size_t size)
             }
             else
             {
-                _isUsingAdditionBuffer = true;
+                _isUsingAdditionBuffer = true;  //  append data to addition buffer
+                if (_additionBuffer.empty() || _additionBuffer.back()->getAvaliableSize() < size)
+                {
+                    _additionBuffer.push_back(std::make_unique<LoggerBuffer>());
+                }
+                _additionBuffer.back()->append(data, size);
             }
         }
-        if (_isUsingAdditionBuffer)
-        {  //  append data to addition buffer
-            if (_additionBuffer.empty() || _additionBuffer.back()->getAvaliableSize() < size)
-            {
-                _additionBuffer.push_back(std::make_unique<LoggerBuffer>());
-            }
-            _additionBuffer.back()->append(data, size);
+        if (_isWaiting)
+        {
+            _condition.notify_one();  // only one thread is writing data
+            _isWaiting = false;
         }
-    }
-    if (_isWating)
-    {
-        _condition.notify_one();  // only one thread is writing data
     }
 }
 
@@ -84,9 +82,8 @@ void AsyncLogger::writingThreadFunc()
             }
             else
             {  // no data, just wait
-                _isWating = true;
+                _isWaiting = true;
                 _condition.wait_for(lock, std::chrono::milliseconds{_flushInterval});
-                _isWating = false;
             }
         }
         while (!agnetWritingQueue.isEmpty())  // write all data

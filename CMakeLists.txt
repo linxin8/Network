@@ -8,7 +8,7 @@ project(Network)
 
 # set(CMAKE_CXX_COMPILER "/usr/bin/g++-10")
 # set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS}) 
 set(CXX_FLAGS

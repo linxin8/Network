@@ -2,6 +2,7 @@
 #include "circle_queue.h"
 #include "fixed_byte_buffer.h"
 #include "thread.h"
+#include "time.h"
 #include <bitset>
 #include <condition_variable>
 #include <memory>
@@ -9,30 +10,10 @@
 #include <queue>
 #include <vector>
 
-enum class LoggerLevel
-{
-    trace,
-    debug,
-    info,
-    error
-};
-
-class Logger
-{
-public:
-    Logger(const char* file, const char* function, int line);
-    template <typename T>
-    Logger& operator<<(const T& data)
-    {
-        return *this;
-    }
-};
-
 class LoggerBuffer : Noncopyable
 {
 public:
-    LoggerBuffer() = default;
-    LoggerBuffer(const char* file, const char* function, int line);
+    LoggerBuffer()  = default;
     ~LoggerBuffer() = default;
     void clear()
     {
@@ -166,7 +147,6 @@ public:
 
     // append log, if logger is stopped, do nothing
     void append(const char* data, size_t size);
-
     void start()
     {
         _isRunning = true;
@@ -197,19 +177,90 @@ private:
     std::mutex                   _mutex;
     // condition that data is ready to write
     std::condition_variable                    _condition;
-    bool                                       _isRunning;
+    std::atomic_bool                           _isRunning;
     Thread                                     _thread;
-    std::atomic_bool                           _isWating;
+    std::atomic_bool                           _isWaiting;
     std::vector<std::unique_ptr<LoggerBuffer>> _additionBuffer;
     std::atomic_bool                           _isUsingAdditionBuffer;
 };
 
+enum class LoggerLevel
+{
+    none,
+    trace,
+    debug,
+    info,
+    error
+};
+
+constexpr LoggerLevel logMinLevel = LoggerLevel::debug;
+
+template <bool>
+class Logger;
+
+template <>
+class Logger<true>
+{
+public:
+    Logger(const char* formatted_prefix_file_line, const char* function) : _buffer{}
+    {
+        static bool logStarted = false;
+        if (!logStarted)
+        {
+            _logger.start();
+            logStarted = true;
+        }
+        auto time = TimePoint::now();
+        _buffer << time.hours() << ':' << time.minute() << ':' << time.second() << ' ' << formatted_prefix_file_line
+                << function << ' ';
+    }
+    ~Logger()
+    {
+        assert(_buffer.getSize() < _buffer.getAvaliableSize());
+        _buffer << '\n';
+        _logger.append(static_cast<const char*>(_buffer.getRowdata()), _buffer.getSize());
+    }
+
+    template <typename T>
+    Logger<true>& operator<<(const T& data)
+    {
+        _buffer << data << ' ';
+        return *this;
+    }
+
+private:
+    static inline AsyncLogger _logger;
+    LoggerBuffer              _buffer;
+};
+
+template <>
+class Logger<false>
+{
+public:
+    constexpr Logger(const char*, const char*) {}
+    template <typename T>
+    Logger<false>& operator<<(const T& data)
+    {
+        return *this;
+    }
+};
+
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc
 
-#define LOG_TRACE()
+#define _LOG_FORMAT(PREFIX, FILE, LINE) PREFIX " " FILE " " LINE " "
 
-#define LOG_DEBUG() debugLogger;
+#define _STRINGIZE_DETAIL(x) #x
 
-#define LOG_INFO()
+#define _STRINGIZE(x) _STRINGIZE_DETAIL(x)
 
-#define LOG_ERROR()
+#define LOG_TRACE()                                                                                                    \
+    Logger<LoggerLevel::trace >= logMinLevel>(_LOG_FORMAT("trace", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+
+#define LOG_DEBUG()                                                                                                    \
+    Logger<LoggerLevel::debug >= logMinLevel>(_LOG_FORMAT("debug", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+
+#define LOG_INFO()                                                                                                     \
+    Logger<LoggerLevel::info >= logMinLevel>(_LOG_FORMAT("info", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+
+#define LOG_ERROR()                                                                                                    \
+    Logger<LoggerLevel::error >= logMinLevel>(_LOG_FORMAT("error", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
