@@ -53,6 +53,12 @@ public:
     }
 
     // append data. if in overflow state, do nothing.
+    void append(char* str)
+    {
+        append(static_cast<void*>(str), strlen(str));
+    }
+
+    // append data. if in overflow state, do nothing.
     template <typename T>
     void append(T x)
     {

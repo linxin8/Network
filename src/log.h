@@ -142,7 +142,10 @@ public:
     AsyncLogger();
     ~AsyncLogger()
     {
-        stop();
+        if (_isRunning)
+        {
+            stop();
+        }
     }
 
     // append log, if logger is stopped, do nothing

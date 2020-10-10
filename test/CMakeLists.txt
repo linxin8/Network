@@ -20,3 +20,6 @@ add_executable(circle_queue circle_queue.cpp)
 
 target_link_libraries(circle_queue ${GTEST_LIBRARIES} net pthread )
 
+add_executable(inet_address inet_address.cpp)
+
+target_link_libraries(inet_address ${GTEST_LIBRARIES} net pthread )

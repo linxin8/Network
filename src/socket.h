@@ -1,5 +1,13 @@
 #pragma once
-// socket相关系统api的封装
-namespace Socket
+
+class socket
 {
-}
+private:
+    /* data */
+public:
+    explicit socket(int fd) : _fd{fd} {}
+    ~socket();
+
+private:
+    const int _fd;
+};
