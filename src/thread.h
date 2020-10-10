@@ -3,15 +3,35 @@
 #include "type.h"
 #include <atomic>
 #include <functional>
+#include <unistd.h>
 
 namespace CurrentThread
 {
-    const std::string& getName();
-    const std::string& getTidString();
-    pid_t              getTid();
-    bool               isMainThread();
-    void               sleep(int64_t microseconds);
-    void               setName(std::string name);
+    extern thread_local pid_t       _tid;
+    extern thread_local std::string _name;
+    extern thread_local std::string _tidString;
+
+    inline void setName(std::string name)
+    {
+        _name = std::move(name);
+    }
+    inline const std::string& getName()
+    {
+        return _name;
+    }
+    inline const std::string& getTidString()
+    {
+        return _tidString;
+    }
+    inline pid_t getTid()
+    {
+        return _tid;
+    }
+    inline bool isMainThread()
+    {
+        return _tid == getpid();
+    }
+    void sleep(int64_t microseconds);
     // @demangle: whether use demangle to deformat function name
     std::string getStackTrace(bool demangle = true);
 }  // namespace CurrentThread

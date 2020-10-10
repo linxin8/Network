@@ -7,6 +7,6 @@ public:
     void operator=(const Noncopyable&) = delete;
 
 protected:
-    Noncopyable()  = default;
-    ~Noncopyable() = default;
+    constexpr Noncopyable() = default;
+    ~Noncopyable()          = default;
 };

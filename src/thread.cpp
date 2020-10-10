@@ -21,26 +21,6 @@ namespace CurrentThread
     thread_local std::string _name      = [] { return std::string("Thread") + std::to_string(_tid); }();
     thread_local std::string _tidString = [] { return std::to_string(_tid); }();
 
-    void setName(std::string name)
-    {
-        _name = std::move(name);
-    }
-    const std::string& getName()
-    {
-        return _name;
-    }
-    const std::string& getTidString()
-    {
-        return _tidString;
-    }
-    pid_t getTid()
-    {
-        return _tid;
-    }
-    bool isMainThread()
-    {
-        return _tid == getpid();
-    }
     void sleep(int64_t microseconds)
     {
         timespec      ts;

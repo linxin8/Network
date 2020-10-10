@@ -24,7 +24,7 @@ private:
     /* data */
 public:
     InetAddress(uint16_t port, bool isLoopBackOnly = false, bool isIpv6 = false);
-    InetAddress(uint16_t port);
+
     // resovle hostname, return (is successful, result)
     static std::pair<bool, InetAddress>
     resolve(std::string_view hostname, uint16_t port, bool isLoopBackOnly = false, bool isIpv6 = false);
@@ -38,14 +38,29 @@ public:
         return _addr.sin_family == AF_INET6;
     };
 
-    constexpr uint16_t getPort() const
+    uint16_t getPort() const
     {
-        return _addr.sin_port;
+        return ntohs(_addr.sin_port);
     }
 
     constexpr uint32_t getIp4() const
     {
         return _addr.sin_addr.s_addr;
+    }
+
+    constexpr socklen_t getSocketAddressSize() const
+    {
+        return isIp4() ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+    }
+
+    constexpr const sockaddr& getSocketAddress() const
+    {
+        return reinterpret_cast<const sockaddr&>(_addr);
+    }
+
+    constexpr sockaddr& getSocketAddress()
+    {
+        return reinterpret_cast<sockaddr&>(_addr);
     }
 
     // universal api for both ip4 and ip6
@@ -54,6 +69,11 @@ public:
     std::string getIp4String() const;
     // only for ip6
     std::string getIp6String() const;
+
+    constexpr static InetAddress getInvalidAddress()
+    {
+        return {};
+    }
 
 private:
     constexpr InetAddress() : _addr6{} {};
