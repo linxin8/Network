@@ -17,16 +17,21 @@ std::atomic_uint32_t Thread::_numCreated{};
 
 namespace CurrentThread
 {
-    thread_local pid_t       _tid       = [] { return static_cast<pid_t>(syscall(SYS_gettid)); }();
-    thread_local std::string _name      = [] { return std::string("Thread") + std::to_string(_tid); }();
+    thread_local pid_t _tid = [] {
+        return static_cast<pid_t>(syscall(SYS_gettid));
+    }();
+    thread_local std::string _name = [] {
+        return std::string("Thread") + std::to_string(_tid);
+    }();
     thread_local std::string _tidString = [] { return std::to_string(_tid); }();
 
     void sleep(int64_t microseconds)
     {
         timespec      ts;
         constexpr int microsecondsPerSecond = 1000 * 1000;
-        ts.tv_sec                           = static_cast<time_t>(microseconds / microsecondsPerSecond);
-        ts.tv_nsec                          = static_cast<long>(microseconds % microsecondsPerSecond * 1000);
+        ts.tv_sec = static_cast<time_t>(microseconds / microsecondsPerSecond);
+        ts.tv_nsec =
+            static_cast<long>(microseconds % microsecondsPerSecond * 1000);
         nanosleep(&ts, NULL);
     }
     std::string getStackTrace(bool demangle)
@@ -38,9 +43,11 @@ namespace CurrentThread
         char**      strings = backtrace_symbols(frame, nptrs);
         if (strings != nullptr)
         {
-            size_t len       = 256;
-            char*  demangled = demangle ? static_cast<char*>(::malloc(len)) : nullptr;
-            for (int i = 1; i < nptrs; ++i)  // skipping the 0-th, which is this function
+            size_t len = 256;
+            char*  demangled =
+                demangle ? static_cast<char*>(::malloc(len)) : nullptr;
+            for (int i = 1; i < nptrs;
+                 ++i)  // skipping the 0-th, which is this function
             {
                 if (demangle)
                 {
@@ -64,8 +71,9 @@ namespace CurrentThread
                     {
                         *plus        = '\0';
                         int   status = 0;
-                        char* ret    = abi::__cxa_demangle(left_par + 1, demangled, &len, &status);
-                        *plus        = '+';
+                        char* ret    = abi::__cxa_demangle(
+                            left_par + 1, demangled, &len, &status);
+                        *plus = '+';
                         if (status == 0)
                         {
                             demangled = ret;  // ret could be realloc()
@@ -88,15 +96,21 @@ namespace CurrentThread
     }
 };  // namespace CurrentThread
 
-Thread::Thread(std::function<void()> threadMain, std::string name)
-    : _threadMain{std::move(threadMain)}, _isStarted{}, _isJoined{}, _name{std::move(name)},
-      _pthreadID{}, _tid{}, _latch{1}
+Thread::Thread(std::function<void()> threadMain, std::string name) :
+    _threadMain{std::move(threadMain)},
+    _isStarted{},
+    _isJoined{},
+    _name{std::move(name)},
+    _pthreadID{},
+    _tid{},
+    _latch{1}
 {
     ++_numCreated;
 }
 
-Thread::Thread(std::function<void()> threadMain)
-    : Thread{std::move(threadMain), std::string("Thread") + std::to_string(_numCreated + 1)}
+Thread::Thread(std::function<void()> threadMain) :
+    Thread{std::move(threadMain),
+           std::string("Thread") + std::to_string(_numCreated + 1)}
 {
 }
 
@@ -106,8 +120,14 @@ struct PThreadMainArgument
     std::string           _name;
     pid_t*                _tid;
     CountDownLatch*       _latch;
-    PThreadMainArgument(std::function<void()> mainFunction, std::string name, pid_t* tid, CountDownLatch* latch)
-        : _mainFunction{std::move(mainFunction)}, _name{std::move(_name)}, _tid{tid}, _latch{latch}
+    PThreadMainArgument(std::function<void()> mainFunction,
+                        std::string           name,
+                        pid_t*                tid,
+                        CountDownLatch*       latch) :
+        _mainFunction{std::move(mainFunction)},
+        _name{std::move(_name)},
+        _tid{tid},
+        _latch{latch}
     {
     }
 };
@@ -133,7 +153,9 @@ void* phtreadMain(void* data)
     catch (const Exception& ex)
     {
         CurrentThread::setName("crashed");
-        fprintf(stderr, "exception caught in Thread %s\n", CurrentThread::getName().c_str());
+        fprintf(stderr,
+                "exception caught in Thread %s\n",
+                CurrentThread::getName().c_str());
         fprintf(stderr, "reason: %s\n", ex.what());
         fprintf(stderr, "stack trace: %s\n", ex.stackTrace());
         abort();
@@ -141,24 +163,32 @@ void* phtreadMain(void* data)
     catch (const std::exception& ex)
     {
         CurrentThread::setName("crashed");
-        fprintf(stderr, "exception caught in Thread %s\n", CurrentThread::getName().c_str());
+        fprintf(stderr,
+                "exception caught in Thread %s\n",
+                CurrentThread::getName().c_str());
         fprintf(stderr, "reason: %s\n", ex.what());
         abort();
     }
     catch (...)
     {
         CurrentThread::setName("crashed");
-        fprintf(stderr, "unknown exception caught in Thread %s\n", CurrentThread::getName().c_str());
+        fprintf(stderr,
+                "unknown exception caught in Thread %s\n",
+                CurrentThread::getName().c_str());
         throw;  // rethrow
     }
     return nullptr;
 }
 
 // create thread, return whether success
-bool pthreadStart(std::function<void()> mainFunction, std::string name, pid_t* tid, pthread_t* thread)
+bool pthreadStart(std::function<void()> mainFunction,
+                  std::string           name,
+                  pid_t*                tid,
+                  pthread_t*            thread)
 {
     CountDownLatch       latch{1};
-    PThreadMainArgument* arg = new PThreadMainArgument{std::move(mainFunction), std::move(name), tid, &latch};
+    PThreadMainArgument* arg = new PThreadMainArgument{
+        std::move(mainFunction), std::move(name), tid, &latch};
     if (pthread_create(thread, NULL, &phtreadMain, arg))
     {
         fprintf(stderr, "create pthread failed\n");

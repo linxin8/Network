@@ -58,8 +58,12 @@ public:
     class BufferAgent
     {
     public:
-        BufferAgent(LogBufferPool<N>* pool, LoggerBuffer* buffer) : _pool{pool}, _buffer{buffer} {}
-        BufferAgent(BufferAgent&& agent) : _pool{agent._pool}, _buffer{agent._buffer}
+        BufferAgent(LogBufferPool<N>* pool, LoggerBuffer* buffer) :
+            _pool{pool}, _buffer{buffer}
+        {
+        }
+        BufferAgent(BufferAgent&& agent) :
+            _pool{agent._pool}, _buffer{agent._buffer}
         {
             agent._pool   = nullptr;
             agent._buffer = nullptr;
@@ -108,7 +112,8 @@ public:
     // get avilable buffer
     BufferAgent getAvaliableAgent()
     {
-        assert(!_queue.isEmpty());  // queue is empty, cannnot take any avaliable
+        assert(
+            !_queue.isEmpty());  // queue is empty, cannnot take any avaliable
         return {this, &_buffer[_queue.take()]};
     }
 
@@ -205,7 +210,8 @@ template <>
 class Logger<true>
 {
 public:
-    Logger(const char* formatted_prefix_file_line, const char* function) : _buffer{}
+    Logger(const char* formatted_prefix_file_line, const char* function) :
+        _buffer{}
     {
         static bool logStarted = false;
         if (!logStarted)
@@ -214,14 +220,15 @@ public:
             logStarted = true;
         }
         auto time = TimePoint::now();
-        _buffer << time.hours() << ':' << time.minute() << ':' << time.second() << ' ' << formatted_prefix_file_line
-                << function << ' ';
+        _buffer << time.hours() << ':' << time.minute() << ':' << time.second()
+                << ' ' << formatted_prefix_file_line << function << ' ';
     }
     ~Logger()
     {
         assert(_buffer.getSize() < _buffer.getAvaliableSize());
         _buffer << '\n';
-        _logger.append(static_cast<const char*>(_buffer.getRowdata()), _buffer.getSize());
+        _logger.append(static_cast<const char*>(_buffer.getRowdata()),
+                       _buffer.getSize());
     }
 
     template <typename T>
@@ -256,14 +263,22 @@ public:
 
 #define _STRINGIZE(x) _STRINGIZE_DETAIL(x)
 
-#define LOG_TRACE()                                                                                                    \
-    Logger<LoggerLevel::trace >= logMinLevel>(_LOG_FORMAT("trace", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+#define LOG_TRACE()                                                            \
+    Logger<LoggerLevel::trace >= logMinLevel>(                                 \
+        _LOG_FORMAT("trace", __FILE__, _STRINGIZE(__LINE__)),                  \
+        __PRETTY_FUNCTION__)
 
-#define LOG_DEBUG()                                                                                                    \
-    Logger<LoggerLevel::debug >= logMinLevel>(_LOG_FORMAT("debug", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+#define LOG_DEBUG()                                                            \
+    Logger<LoggerLevel::debug >= logMinLevel>(                                 \
+        _LOG_FORMAT("debug", __FILE__, _STRINGIZE(__LINE__)),                  \
+        __PRETTY_FUNCTION__)
 
-#define LOG_INFO()                                                                                                     \
-    Logger<LoggerLevel::info >= logMinLevel>(_LOG_FORMAT("info", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+#define LOG_INFO()                                                             \
+    Logger<LoggerLevel::info >= logMinLevel>(                                  \
+        _LOG_FORMAT("info", __FILE__, _STRINGIZE(__LINE__)),                   \
+        __PRETTY_FUNCTION__)
 
-#define LOG_ERROR()                                                                                                    \
-    Logger<LoggerLevel::error >= logMinLevel>(_LOG_FORMAT("error", __FILE__, _STRINGIZE(__LINE__)), __PRETTY_FUNCTION__)
+#define LOG_ERROR()                                                            \
+    Logger<LoggerLevel::error >= logMinLevel>(                                 \
+        _LOG_FORMAT("error", __FILE__, _STRINGIZE(__LINE__)),                  \
+        __PRETTY_FUNCTION__)

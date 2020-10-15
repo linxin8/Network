@@ -23,11 +23,15 @@ class InetAddress
 private:
     /* data */
 public:
-    InetAddress(uint16_t port, bool isLoopBackOnly = false, bool isIpv6 = false);
+    InetAddress(uint16_t port,
+                bool     isLoopBackOnly = false,
+                bool     isIpv6         = false);
 
     // resovle hostname, return (is successful, result)
-    static std::pair<bool, InetAddress>
-    resolve(std::string_view hostname, uint16_t port, bool isLoopBackOnly = false, bool isIpv6 = false);
+    static std::pair<bool, InetAddress> resolve(std::string_view hostname,
+                                                uint16_t         port,
+                                                bool isLoopBackOnly = false,
+                                                bool isIpv6         = false);
 
     constexpr bool isIp4() const
     {
@@ -79,10 +83,10 @@ private:
     constexpr InetAddress() : _addr6{} {};
     constexpr InetAddress(sockaddr_in address) : _addr{address} {};
     constexpr InetAddress(sockaddr_in6 address) : _addr6{address} {};
-    constexpr InetAddress(sockaddr address)
-        : _addr{
-              reinterpret_cast<sockaddr_in&>(address)  // it is safe to cast
-          } {};
+    constexpr InetAddress(sockaddr address) :
+        _addr{
+            reinterpret_cast<sockaddr_in&>(address)  // it is safe to cast
+        } {};
     union
     {
         struct sockaddr_in  _addr;   // ip v4

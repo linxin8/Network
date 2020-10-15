@@ -3,10 +3,18 @@
 #include <chrono>
 #include <iostream>
 
-AsyncLogger::AsyncLogger()
-    : _logName{"log.txt"}, _flushInterval{10}, _pool{}, _agentToWrited{}, _currentAgent{_pool.getAvaliableAgent()},
-      _condition{}, _isRunning{}, _thread{std::bind(&AsyncLogger::writingThreadFunc, this)}, _isWaiting{},
-      _additionBuffer{}, _isUsingAdditionBuffer{}
+AsyncLogger::AsyncLogger() :
+    _logName{"log.txt"},
+    _flushInterval{10},
+    _pool{},
+    _agentToWrited{},
+    _currentAgent{_pool.getAvaliableAgent()},
+    _condition{},
+    _isRunning{},
+    _thread{std::bind(&AsyncLogger::writingThreadFunc, this)},
+    _isWaiting{},
+    _additionBuffer{},
+    _isUsingAdditionBuffer{}
 {
 }
 
@@ -38,8 +46,10 @@ void AsyncLogger::append(const char* data, size_t size)
             }
             else
             {
-                _isUsingAdditionBuffer = true;  //  append data to addition buffer
-                if (_additionBuffer.empty() || _additionBuffer.back()->getAvaliableSize() < size)
+                _isUsingAdditionBuffer =
+                    true;  //  append data to addition buffer
+                if (_additionBuffer.empty() ||
+                    _additionBuffer.back()->getAvaliableSize() < size)
                 {
                     _additionBuffer.push_back(std::make_unique<LoggerBuffer>());
                 }
@@ -83,20 +93,23 @@ void AsyncLogger::writingThreadFunc()
             else
             {  // no data, just wait
                 _isWaiting = true;
-                _condition.wait_for(lock, std::chrono::milliseconds{_flushInterval});
+                _condition.wait_for(lock,
+                                    std::chrono::milliseconds{_flushInterval});
             }
         }
         while (!agnetWritingQueue.isEmpty())  // write all data
         {
             auto& buffer = agnetWritingQueue.getFront().getBuffer();
-            file.append(static_cast<const char*>(buffer.getRowdata()), buffer.getSize());
+            file.append(static_cast<const char*>(buffer.getRowdata()),
+                        buffer.getSize());
             deleteQueue.push(std::move(agnetWritingQueue.take()));
         }
         if (_isUsingAdditionBuffer)
         {
             for (auto& buffer : additionBuffer)
             {
-                file.append(static_cast<const char*>(buffer->getRowdata()), buffer->getSize());
+                file.append(static_cast<const char*>(buffer->getRowdata()),
+                            buffer->getSize());
             }
             additionBuffer.clear();
             _isUsingAdditionBuffer = false;

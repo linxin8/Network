@@ -3,7 +3,8 @@
 #include <cstdlib>
 #include <sys/stat.h>
 
-WriteOnlyFile::WriteOnlyFile(const char* path) : _file{fopen(path, "w")}, _byteWrited{0}
+WriteOnlyFile::WriteOnlyFile(const char* path) :
+    _file{fopen(path, "w")}, _byteWrited{0}
 {
     assert(_file);
     struct stat stats;
@@ -38,7 +39,9 @@ void WriteOnlyFile::append(const char* data, size_t size)
             int err = ferror(_file);
             if (err)
             {
-                fprintf(stderr, "WriteOnlyFile::append failed, error no: %d\n", err);
+                fprintf(stderr,
+                        "WriteOnlyFile::append failed, error no: %d\n",
+                        err);
                 break;
             }
         }

@@ -2,7 +2,13 @@
 #include "type.h"
 #include <atomic>
 #include <cassert>
+#include <memory>
 #include <mutex>
+#include <vector>
+
+class EPoll;
+
+class Channel;
 
 class EventLoop : Noncopyable
 {
@@ -13,9 +19,32 @@ public:
     void start();
     void quit();
 
+    void EventLoop::modifyChannel(Channel* channel)
+    {
+        assert(channel->isInEpoll());
+        _epoll->modify(channel);
+    }
+
+    void EventLoop::addChannel(Channel* channel)
+    {
+        assert(!channel->isInEpoll());
+        _epoll->add(channel);
+    }
+
+    void EventLoop::removeChannel(Channel* channel)
+    {
+        assert(channel->isInEpoll());
+        _epoll->remove(channel);
+    }
+
 private:
-    bool _isRunning;
-    bool _isQuited;
+    void loop();
+
+private:
+    bool                   _isRunning;
+    bool                   _isQuited;
+    std::vector<Channel*>  _channelVector;
+    std::unique_ptr<EPoll> _epoll;
 };
 
 namespace CurrentThread

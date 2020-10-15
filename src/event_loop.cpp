@@ -1,8 +1,15 @@
 #include "event_loop.h"
+#include "channel.h"
+#include "epoll.h"
 #include "log.h"
 #include <cassert>
 
-EventLoop::EventLoop() : _isRunning{}, _isQuited{}
+EventLoop::EventLoop() :
+    _isRunning{},
+    _isQuited{},
+    _channelVector{},
+    _epoll{std::make_unique<EPoll>()}
+
 {
     CurrentThread::setEventLoop(const_cast<EventLoop&>(*this));
 }
@@ -10,8 +17,18 @@ EventLoop::EventLoop() : _isRunning{}, _isQuited{}
 void EventLoop::start()
 {
     assert(!_isRunning);
-    while (!_isQuited) {}
+    while (!_isQuited)
+    {
+        constexpr int mtime = 10000;
+        _epoll->pool(mtime, _channelVector);
+        for (auto& channel : _channelVector)
+        {
+            channel->handleEvent();
+        }
+    }
 }
+
+void EventLoop::loop() {}
 
 namespace CurrentThread
 {

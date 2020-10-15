@@ -43,7 +43,7 @@ AlwaysBreakBeforeMultilineStrings:	false
 # 总是在template声明后换行
 AlwaysBreakTemplateDeclarations:	true
 # false表示函数实参要么都在同一行，要么都各自一行
-BinPackArguments:	true
+BinPackArguments:	false
 # false表示所有形参要么都在同一行，要么都各自一行
 BinPackParameters:	false
 # 大括号换行，只有当BreakBeforeBraces设置为Custom时才有效
@@ -88,14 +88,14 @@ BreakBeforeTernaryOperators:	false
  
 # 在构造函数的初始化列表的逗号前换行
 BreakConstructorInitializersBeforeComma:	false
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: AfterColon
 # 每行字符的限制，0表示没有限制
-ColumnLimit:	120
+ColumnLimit:	80
 # 描述具有特殊意义的注释的正则表达式，它不应该被分割为多行或以其它方式改变
 CommentPragmas:	'^ IWYU pragma:'
 CompactNamespaces: false
 # 构造函数的初始化列表要么都在同一行，要么都各自一行
-ConstructorInitializerAllOnOneLineOrOnePerLine:	false
+ConstructorInitializerAllOnOneLineOrOnePerLine:	true
 # 构造函数的初始化列表的缩进宽度
 ConstructorInitializerIndentWidth:	4
 # 延续的行的缩进宽度

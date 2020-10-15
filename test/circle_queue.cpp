@@ -37,8 +37,10 @@ int Object::_count{};
 
 TEST(CircleQueue, typeAliase)
 {
-    static_assert(std::is_same_v<CircleQueue<Object, 2>, _CircleQueue<Object, 2, false>>);
-    static_assert(std::is_same_v<CircleQueue<int, 2>, _CircleQueue<int, 2, true>>);
+    static_assert(
+        std::is_same_v<CircleQueue<Object, 2>, _CircleQueue<Object, 2, false>>);
+    static_assert(
+        std::is_same_v<CircleQueue<int, 2>, _CircleQueue<int, 2, true>>);
 }
 
 TEST(CircleQueue, object)

@@ -66,7 +66,8 @@ public:
     {
         constexpr auto microSecondPerHour = _microSecondPerSecond * 60 * 60;
         constexpr auto microSecondPerDay  = microSecondPerHour * 24;
-        auto           chinaTime          = 8 + _epochTime % microSecondPerDay / microSecondPerHour;
+        auto           chinaTime =
+            8 + _epochTime % microSecondPerDay / microSecondPerHour;
         if (chinaTime >= 24)
         {
             chinaTime -= 24;

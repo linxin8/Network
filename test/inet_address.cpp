@@ -8,7 +8,8 @@ TEST(InetAddress, resovle)
     auto&& [ok, address] = InetAddress::resolve("baidu.com", 80);
     if (ok)
     {
-        std::cout << "resolve baidu.com :" << address.getIpString() << std::endl;
+        std::cout << "resolve baidu.com :" << address.getIpString()
+                  << std::endl;
     }
     else
     {
