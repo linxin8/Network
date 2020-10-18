@@ -4,55 +4,59 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-Acceptor::Acceptor(const InetAddress& listenAddress, bool isReusePort) :
-    _onNewConnection{},
+Acceptor::Acceptor(const InetAddress& listenAddress) :
+    _onAcception{},
     _isListening{},
     _socket{true, false, true},
-    _channel{0},
+    _channel{_socket.getFd()},
     _reserveFd{}
 {
     _reserveFd = open("/dev/null", O_RDONLY | O_CLOEXEC);
+    _socket.setKeepAlive(true);
+    _socket.setReuseAddress(true);
+    _socket.setReusePort(true);
     _socket.bind(listenAddress);
-    _channel.setOnRead(std::bind(&Acceptor::onRead, this));
+    _channel.setOnRead(std::bind(&Acceptor::onAcceptable, this));
 }
 
 Acceptor::~Acceptor()
 {
     _channel.disableRead();
     _channel.disableWrite();
-    CurrentThread::getEventLoop().removeChannel(&_channel);
     close(_reserveFd);
 }
 
 void Acceptor::listen()
 {
+    assert(!_isListening);
     _socket.listen();
+    _isListening = true;
+    _channel.enableRead();
 }
 
-void Acceptor::onRead()
+void Acceptor::onAcceptable()
 {
-    auto&& [ok, fd, address] = _socket.accept();
+    auto [ok, socket] = _socket.accept();
     if (ok)
     {
-        if (_onNewConnection)
+        if (_onAcception)
         {
-            _onNewConnection(fd, address);
+            _onAcception(std::move(socket));
         }
         else
         {
             LOG_INFO() << "call back \"on new connection\" not ready ";
-            close(fd);
+            // socket fd will atomatic close
         }
     }
     else
     {
-        LOG_ERROR() << std::strerror(errno);
         if (errno == EMFILE)
         {
-            ::close(_reserveFd);
-            _reserveFd = ::accept(_socket.getFd(), NULL, NULL);
-            ::close(_reserveFd);
-            _reserveFd = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+            close(_reserveFd);
+            _reserveFd = accept(_socket.getFd(), NULL, NULL);
+            close(_reserveFd);
+            _reserveFd = open("/dev/null", O_RDONLY | O_CLOEXEC);
         }
     }
 }

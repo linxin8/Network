@@ -7,13 +7,12 @@
 class Acceptor
 {
 public:
-    Acceptor(const InetAddress& listenAddress, bool isReusePort);
+    Acceptor(const InetAddress& listenAddress);
     ~Acceptor();
 
-    void setOnNewConnection(
-        std::function<void(int, const InetAddress&)> onNewConnection)
+    void setOnAcception(std::function<void(Socket)> onNewConnection)
     {
-        _onNewConnection = std::move(onNewConnection);
+        _onAcception = std::move(onNewConnection);
     }
 
     void listen();
@@ -24,12 +23,12 @@ public:
     }
 
 private:
-    void onRead();
+    void onAcceptable();
 
 private:
-    std::function<void(int, const InetAddress&)> _onNewConnection;
-    bool                                         _isListening;
-    Socket                                       _socket;
-    Channel                                      _channel;
-    int                                          _reserveFd;
+    std::function<void(Socket)> _onAcception;
+    bool                        _isListening;
+    Socket                      _socket;
+    Channel                     _channel;
+    int                         _reserveFd;
 };

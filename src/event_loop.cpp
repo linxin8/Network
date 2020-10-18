@@ -27,6 +27,10 @@ void EventLoop::start()
         }
     }
 }
+void EventLoop::quit()
+{
+    _isQuited = true;
+}
 
 void EventLoop::loop() {}
 

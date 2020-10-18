@@ -257,7 +257,7 @@ public:
 
 // __PRETTY_FUNCTION__ is a more readable than __func__ in gcc
 
-#define _LOG_FORMAT(PREFIX, FILE, LINE) PREFIX " " FILE " " LINE " "
+#define _LOG_FORMAT(PREFIX, FILE, LINE) PREFIX " " FILE ":" LINE " "
 
 #define _STRINGIZE_DETAIL(x) #x
 

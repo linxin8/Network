@@ -44,8 +44,8 @@ void EPoll::pool(int msecond, std::vector<Channel*>& channel)
 void EPoll::add(Channel* channel)
 {
     assert(channel->getIndex() == -1);
-    _channelVector.push_back(channel);
     channel->setIndex(static_cast<int>(_channelVector.size()));
+    _channelVector.push_back(channel);
     control(EPOLL_CTL_ADD, channel);
 }
 
@@ -63,6 +63,7 @@ void EPoll::remove(Channel* channel)
     _channelVector.back()->setIndex(index);
     std::swap(_channelVector.at(index), _channelVector.back());
     _channelVector.pop_back();
+    channel->setIndex(-1);
 }
 
 void EPoll::control(int operation, Channel* channel)

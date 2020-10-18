@@ -20,6 +20,8 @@ AsyncLogger::AsyncLogger() :
 
 void AsyncLogger::append(const char* data, size_t size)
 {
+    // or just print to stdout
+    fprintf(stdout, "%*s\n", static_cast<int>(size), data);
     // if not running , just discard data
     if (!_isRunning)
     {

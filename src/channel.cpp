@@ -57,11 +57,21 @@ void Channel::update()
     auto& eventLoop = CurrentThread::getEventLoop();
     if (isInEpoll())
     {
-        eventLoop.addChannel(this);
+        if (_events == 0)
+        {  // listen none event, just remove channel
+            eventLoop.removeChannel(this);
+        }
+        else
+        {
+            eventLoop.modifyChannel(this);
+        }
     }
     else
     {
-        eventLoop.modifyChannel(this);
+        if (_events != 0)
+        {
+            eventLoop.addChannel(this);
+        }
     }
 }
 
@@ -70,6 +80,7 @@ void Channel::enableRead()
     _events |= EPOLLIN | EPOLLPRI;
     update();
 }
+
 void Channel::disableRead()
 {
     _events &= ~(EPOLLIN | EPOLLPRI);

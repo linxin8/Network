@@ -5,7 +5,14 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
+
+Socket::Socket(int fd) : _fd{fd}
+{
+    // omly check if is socket, not check family, type, listening state
+    assert(sd_is_socket(fd, AF_UNSPEC, 0, -1));
+}
 
 Socket::Socket(bool isIp4, bool isBlock, bool isTcp)
 {
@@ -15,7 +22,7 @@ Socket::Socket(bool isIp4, bool isBlock, bool isTcp)
     {
         type |= SOCK_NONBLOCK;
     }
-    _fd = socket(domain, type, NULL);
+    _fd = socket(domain, type, 0);
     if (_fd == -1)
     {
         LOG_ERROR() << std::strerror(errno);
@@ -24,7 +31,7 @@ Socket::Socket(bool isIp4, bool isBlock, bool isTcp)
 
 Socket::~Socket()
 {
-    close(_fd);
+    close();
 }
 
 bool Socket::bind(const InetAddress& address)
@@ -50,24 +57,34 @@ bool Socket::listen()
     return ok;
 }
 
-std::tuple<bool, int, InetAddress> Socket::accept()
+std::pair<bool, Socket> Socket::accept()
 {
     InetAddress address = InetAddress::getInvalidAddress();
-    socklen_t   len     = 0;  // never used;
+    socklen_t   len     = sizeof(address);
     int         fd      = ::accept4(
         _fd, &address.getSocketAddress(), &len, SOCK_NONBLOCK | SOCK_CLOEXEC);
-    bool ok = fd != -1;
-    if (!ok)
+
+    bool error = fd == -1;
+
+    if (error)
     {
-        LOG_ERROR() << std::strerror(errno);
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            // The socket is marked nonblocking and no connections are present
+            // to be accepted. do nothing.
+        }
+        else
+        {
+            LOG_ERROR() << std::strerror(errno);
+        }
     }
-    return {ok, fd, address};
+    return {!error, Socket{fd}};
 }
 
 void Socket::setReuseAddress(bool on)
 {
     int  value = on;
-    bool ok    = -1 == setsockopt(_fd,
+    bool ok    = -1 != setsockopt(_fd,
                                SOL_SOCKET,
                                SO_REUSEADDR,
                                &value,
@@ -81,12 +98,12 @@ void Socket::setReuseAddress(bool on)
 void Socket::setReusePort(bool on)
 {
     int  value = on;
-    bool ok    = -1 == setsockopt(_fd,
-                               SOL_SOCKET,
-                               SO_REUSEPORT,
-                               &value,
-                               static_cast<socklen_t>(sizeof(value)));
-    if (!ok)
+    bool error = -1 == setsockopt(_fd,
+                                  SOL_SOCKET,
+                                  SO_REUSEPORT,
+                                  &value,
+                                  static_cast<socklen_t>(sizeof(value)));
+    if (error)
     {
         LOG_ERROR() << std::strerror(errno);
     }
@@ -95,13 +112,65 @@ void Socket::setReusePort(bool on)
 void Socket::setKeepAlive(bool on)
 {
     int  value = on;
-    bool ok    = -1 == setsockopt(_fd,
-                               SOL_SOCKET,
-                               SO_KEEPALIVE,
-                               &value,
-                               static_cast<socklen_t>(sizeof(value)));
-    if (!ok)
+    bool error = -1 == setsockopt(_fd,
+                                  SOL_SOCKET,
+                                  SO_KEEPALIVE,
+                                  &value,
+                                  static_cast<socklen_t>(sizeof(value)));
+    if (error)
     {
         LOG_ERROR() << std::strerror(errno);
     }
+}
+
+InetAddress Socket::getPeerAddress() const
+{
+    InetAddress address = InetAddress::getInvalidAddress();
+    socklen_t   length  = sizeof(address);
+    bool        error =
+        -1 == getpeername(_fd,
+                          static_cast<sockaddr*>(&address.getSocketAddress()),
+                          &length);
+    if (error)
+    {
+        LOG_ERROR() << std::strerror(errno);
+        return InetAddress::getInvalidAddress();
+    }
+    return address;
+}
+
+InetAddress Socket::getLocalAddress() const
+{
+    InetAddress address = InetAddress::getInvalidAddress();
+    socklen_t   length  = sizeof(address);
+    bool        error =
+        -1 == getsockname(_fd,
+                          static_cast<sockaddr*>(&address.getSocketAddress()),
+                          &length);
+    if (error)
+    {
+        LOG_ERROR() << std::strerror(errno);
+        return InetAddress::getInvalidAddress();
+    }
+    return address;
+}
+
+void Socket::close()
+{
+    if (_fd != -1)
+    {
+        bool error = -1 == ::close(_fd);
+        if (error)
+        {
+            LOG_ERROR() << std::strerror(errno);
+        }
+    }
+}
+
+int Socket::getErrorNo() const
+{
+    int       option;
+    socklen_t length = sizeof(option);
+    bool error = -1 == getsockopt(_fd, SOL_SOCKET, SO_ERROR, &option, &length);
+    return error ? errno : option;
 }

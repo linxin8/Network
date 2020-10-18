@@ -42,6 +42,7 @@ public:
     explicit Thread(std::function<void()> threadMain);
     explicit Thread(std::function<void()> threadMain, std::string name);
     ~Thread();
+    // return only after thread has run
     void               start();
     int                join();
     void               detach();
@@ -64,8 +65,8 @@ public:
     }
 
 private:
-    bool                        _isStarted;
-    bool                        _isJoined;
+    std::atomic_bool            _isStarted;
+    std::atomic_bool            _isJoined;
     std::function<void()>       _threadMain;
     static std::atomic_uint32_t _numCreated;
     std::string                 _name;

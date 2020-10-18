@@ -1,4 +1,6 @@
 #pragma once
+#include "channel.h"
+#include "epoll.h"
 #include "type.h"
 #include <atomic>
 #include <cassert>
@@ -6,32 +8,29 @@
 #include <mutex>
 #include <vector>
 
-class EPoll;
-
-class Channel;
-
 class EventLoop : Noncopyable
 {
 public:
     EventLoop();
     ~EventLoop() = default;
 
+    // infinite loop, never return until quit is called
     void start();
     void quit();
 
-    void EventLoop::modifyChannel(Channel* channel)
+    void modifyChannel(Channel* channel)
     {
         assert(channel->isInEpoll());
         _epoll->modify(channel);
     }
 
-    void EventLoop::addChannel(Channel* channel)
+    void addChannel(Channel* channel)
     {
         assert(!channel->isInEpoll());
         _epoll->add(channel);
     }
 
-    void EventLoop::removeChannel(Channel* channel)
+    void removeChannel(Channel* channel)
     {
         assert(channel->isInEpoll());
         _epoll->remove(channel);

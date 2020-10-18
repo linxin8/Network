@@ -4,6 +4,7 @@
 class Channel
 {
 public:
+    // not take ownship of fd
     Channel(int fd);
     ~Channel();
 
@@ -41,7 +42,7 @@ public:
 
     constexpr bool isInEpoll() const
     {
-        return _index == -1;
+        return _index != -1;
     }
 
     void enableRead();
@@ -72,5 +73,5 @@ private:
     std::function<void()> _onWrite;
     std::function<void()> _onClose;
     std::function<void()> _onError;
-    int                   _index;  //  index of pool channel list
+    int                   _index;  //  index of poll channel list
 };

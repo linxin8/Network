@@ -15,7 +15,12 @@ socket.cpp
 channel.cpp
 epoll.cpp
 event_loop.cpp
+acceptor.cpp
+event_loop_thread.cpp
 )
+
+target_link_libraries(net pthread systemd)
+
 add_executable(network main.cpp)
  
 target_link_libraries(network net pthread)
