@@ -31,12 +31,23 @@ public:
     {
         return _fd;
     }
+
     // skip TIME_AWAIT protect step, default is false
     void setReuseAddress(bool on);
+
     //  muti-socket can listen on the same port
     // (except one already in TIME_AWAIT step), default is false
     void setReusePort(bool on);
+
     void setKeepAlive(bool on);
+
+    // send max size bytes into data from socket
+    // return the number sent or -1 for error
+    ssize_t sendNonblocking(const void* data, size_t size);
+
+    // receive max size bytes into data from socket
+    // return the number received or -1 for error
+    ssize_t recvNonblocking(void* data, size_t maxSize);
 
     bool                    listen();
     bool                    bind(const InetAddress& address);

@@ -249,7 +249,7 @@ class Logger<false>
 public:
     constexpr Logger(const char*, const char*) {}
     template <typename T>
-    Logger<false>& operator<<(const T& data)
+    constexpr const Logger<false>& operator<<(const T& data) const
     {
         return *this;
     }

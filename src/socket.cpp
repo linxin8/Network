@@ -174,3 +174,25 @@ int Socket::getErrorNo() const
     bool error = -1 == getsockopt(_fd, SOL_SOCKET, SO_ERROR, &option, &length);
     return error ? errno : option;
 }
+
+ssize_t Socket::sendNonblocking(const void* data, size_t maxSize)
+{
+    assert(data != nullptr);
+    ssize_t size = ::send(_fd, data, maxSize, MSG_DONTWAIT);
+    if (size == -1)
+    {
+        LOG_ERROR() << std::strerror(errno);
+    }
+    return size;
+}
+
+ssize_t Socket::recvNonblocking(void* data, size_t maxSize)
+{
+    assert(data != nullptr);
+    ssize_t size = ::recv(_fd, data, maxSize, MSG_DONTWAIT);
+    if (size == -1)
+    {
+        LOG_ERROR() << std::strerror(errno);
+    }
+    return size;
+}

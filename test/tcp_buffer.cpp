@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-TEST(TcpBUffer, appendInt)
+TEST(TcpBuffer, appendInt)
 {
     TcpBuffer buffer;
     for (int i = 0; i < 10; i++)
@@ -16,7 +16,7 @@ TEST(TcpBUffer, appendInt)
     }
 }
 
-TEST(TcpBUffer, appendPod)
+TEST(TcpBuffer, appendPod)
 {
 #pragma pack(push, 1)
     struct Pod
@@ -38,7 +38,7 @@ TEST(TcpBUffer, appendPod)
     GTEST_ASSERT_EQ(pod.d, value.d);
 }
 
-TEST(TcpBUffer, appendMix)
+TEST(TcpBuffer, appendMix)
 {
 #pragma pack(push, 1)
     struct Pod
@@ -67,24 +67,20 @@ TEST(TcpBUffer, appendMix)
     GTEST_ASSERT_EQ(pod, buffer.take<Pod>());
 }
 
-TEST(TcpBUffer, readIndex)
+TEST(TcpBuffer, smallBuffer)
 {
     TcpBuffer buffer;
-    for (int i = 10; i < 20; i++)
+    for (int i = 1; i < 10; i++)
     {
         buffer.append(i);
+        buffer.append(i);
     }
-    GTEST_ASSERT_EQ(buffer.getReadIndex(), 0);
-    GTEST_ASSERT_EQ(buffer.getSize(), 10 * sizeof(int));
-    GTEST_ASSERT_EQ(buffer.take<int>(), 10);
-    GTEST_ASSERT_EQ(buffer.getReadIndex(), sizeof(int));
-    buffer.seekReadOffset(sizeof(int));
-    GTEST_ASSERT_EQ(buffer.getReadIndex(), sizeof(int) * 2);
-    GTEST_ASSERT_EQ(buffer.take<int>(), 12);
-    buffer.rewriteFront(123);
-    buffer.seekReadBegin();
-    GTEST_ASSERT_EQ(buffer.getReadIndex(), 0);
-    GTEST_ASSERT_EQ(buffer.take<int>(), 123);
+    for (int i = 1; i < 10; i++)
+    {
+        auto x = buffer.take<int>();
+        buffer.pop(sizeof(x));
+        GTEST_ASSERT_EQ(x, i);
+    }
 }
 
 int main(int argc, char* argv[])

@@ -10,6 +10,10 @@
 #include <cstring>
 #include <initializer_list>
 
+// a appendable buffer, allow retreive from the begining of raw data.
+// when append the data that size is large than available size, no data is
+// appended. and it step into overflow state that cannot append any data
+// until clear function is called.
 template <size_t N>
 class FixedByteBuffer : Noncopyable
 {
@@ -66,7 +70,8 @@ public:
         {
             return;
         }
-        std::to_chars_result&& result = std::to_chars(_data + _size, _data + N, x);
+        std::to_chars_result&& result =
+            std::to_chars(_data + _size, _data + N, x);
         if (result.ec == std::errc::value_too_large)
         {
             _isOverflow = true;
@@ -97,16 +102,18 @@ public:
     // append data. if in overflow state, do nothing.
     void append(double x)
     {
-        char str[32];                        // double string length can not excesses 32
-        int  size = sprintf(str, "%lf", x);  // to do, wait for implementation of std::to_chars on double argument
+        char str[32];  // double string length can not excesses 32
+        int size = sprintf(str, "%lf", x);  // to do, wait for implementation of
+                                            // std::to_chars on double argument
         append(str, size);
     }
 
     // append data. if in overflow state, do nothing.
     void append(float x)
     {
-        char str[32];                       // double string length can not excesses 32
-        int  size = sprintf(str, "%f", x);  // to do, wait for implementation of std::to_chars on float argument
+        char str[32];  // double string length can not excesses 32
+        int  size = sprintf(str, "%f", x);  // to do, wait for implementation of
+                                            // std::to_chars on float argument
         append(str, size);
     }
 
@@ -125,7 +132,8 @@ public:
         _size++;
     }
 
-    // once it can not append data, it changed into overflow state and cannot append data any more.
+    // once it can not append data, it changed into overflow state and cannot
+    // append data any more.
     bool isOverflow()
     {
         return _isOverflow;
