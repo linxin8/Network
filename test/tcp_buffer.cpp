@@ -44,7 +44,7 @@ TEST(TcpBuffer, appendMix)
     struct Pod
     {
         int32_t        x;
-        int8_t         y;
+        short          y;
         double         c;
         char           d;
         constexpr bool operator==(const Pod& pod) const
@@ -52,7 +52,7 @@ TEST(TcpBuffer, appendMix)
             return x == pod.x && y == pod.y && c == pod.c && d == pod.d;
         }
     };
-    static_assert(sizeof(Pod) == 14);
+    static_assert(sizeof(Pod) == 15);
 #pragma pack(pop)
     Pod       pod{.x = 1, .y = 2, .c = 3.0, .d = 4};
     TcpBuffer buffer;
@@ -64,7 +64,10 @@ TEST(TcpBuffer, appendMix)
     GTEST_ASSERT_EQ(123, buffer.take<int>());
     GTEST_ASSERT_EQ(pod, buffer.take<Pod>());
     GTEST_ASSERT_EQ(true, buffer.take<bool>());
-    GTEST_ASSERT_EQ(pod, buffer.take<Pod>());
+    GTEST_ASSERT_EQ(1, buffer.take<int32_t>());
+    GTEST_ASSERT_EQ(2, buffer.take<short>());
+    GTEST_ASSERT_EQ(3, buffer.take<double>());
+    GTEST_ASSERT_EQ(4, buffer.take<char>());
 }
 
 TEST(TcpBuffer, smallBuffer)
@@ -78,7 +81,7 @@ TEST(TcpBuffer, smallBuffer)
     for (int i = 1; i < 10; i++)
     {
         auto x = buffer.take<int>();
-        buffer.pop(sizeof(x));
+        buffer.popN(sizeof(x));
         GTEST_ASSERT_EQ(x, i);
     }
 }

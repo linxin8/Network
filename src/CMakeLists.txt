@@ -17,6 +17,7 @@ epoll.cpp
 event_loop.cpp
 acceptor.cpp
 event_loop_thread.cpp
+tcp_connection.cpp
 )
 
 target_link_libraries(net pthread systemd)

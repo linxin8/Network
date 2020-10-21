@@ -15,7 +15,36 @@ Channel::Channel(int fd) :
 {
 }
 
-Channel::~Channel() {}
+Channel::Channel(Channel&& right) :
+    _events{std::move(right._events)},
+    _fd{std::move(right._fd)},
+    _onRead{std::move(right._onRead)},
+    _onWrite{std::move(right._onWrite)},
+    _onClose{std::move(right._onClose)},
+    _onError{std::move(right._onError)},
+    _index{-1}
+{
+    if (right.isEnableRead() && right.isEnbleWrite())
+    {
+        right.disableReadAndWrite();
+        enableReadAndWrite();
+    }
+    else if (right.isEnableRead())
+    {
+        right.disableRead();
+        enableRead();
+    }
+    else if (right.isEnbleWrite())
+    {
+        right.disableWrite();
+        enableWrite();
+    }
+}
+
+Channel::~Channel()
+{
+    disableReadAndWrite();
+}
 
 void Channel::handleEvent()
 {
@@ -96,11 +125,24 @@ void Channel::disableWrite()
     _events &= ~EPOLLOUT;
     update();
 }
-bool Channel::isEnableRead()
+
+void Channel::enableReadAndWrite()
+{
+    _events |= EPOLLIN | EPOLLPRI | EPOLLOUT;
+    update();
+}
+
+void Channel::disableReadAndWrite()
+{
+    _events = 0;
+    update();
+}
+
+bool Channel::isEnableRead() const
 {
     return _events & (EPOLLIN | EPOLLPRI);
 }
-bool Channel::isEnbleWrite()
+bool Channel::isEnbleWrite() const
 {
     return _events & EPOLLOUT;
 }

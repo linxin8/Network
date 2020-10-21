@@ -21,8 +21,7 @@ Acceptor::Acceptor(const InetAddress& listenAddress) :
 
 Acceptor::~Acceptor()
 {
-    _channel.disableRead();
-    _channel.disableWrite();
+    _channel.disableReadAndWrite();
     close(_reserveFd);
 }
 
@@ -41,7 +40,7 @@ void Acceptor::onAcceptable()
     {
         if (_onAcception)
         {
-            _onAcception(std::move(socket));
+            _onAcception(std::make_unique<TcpConnection>(std::move(socket)));
         }
         else
         {

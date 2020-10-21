@@ -247,22 +247,39 @@ private:
     int   _length = 0;
 };
 
-// not thread safe, only allow static pdd element
-// optimized for byte stream
-template <size_t size>
-class _CircleQueue<char, size, true>
-{
-    static_assert(size > 1);
-    static_assert(std::is_pod_v<char>);
+template <typename T, size_t size>
+using CircleQueue = _CircleQueue<T, size, std::is_pod_v<T>>;
 
+// not thread safe
+class CircleByteStreamQueue
+{
 public:
-    ~_CircleQueue()
+    CircleByteStreamQueue(size_t size) :
+        _size{size}, _data{new char[_size]}, _start{0}, _end{0}, _length{0}
     {
-        delete[] _data;
     }
-    constexpr size_t getCapacity() const
+
+    ~CircleByteStreamQueue()
     {
-        return size;
+        if (_data != nullptr)
+        {
+            delete[] _data;
+        }
+    }
+
+    CircleByteStreamQueue(CircleByteStreamQueue&& right) :
+        _size{right._size},
+        _start{right._start},
+        _end{right._end},
+        _length{right._length}
+    {
+        _data       = right._data;
+        right._data = nullptr;
+    }
+
+    size_t getCapacity() const
+    {
+        return _size;
     }
 
     // test if is empty
@@ -273,7 +290,7 @@ public:
     // test if is full
     bool isFull() const
     {
-        return _length == size;
+        return _length == _size;
     }
 
     // get the address of first element
@@ -282,6 +299,13 @@ public:
         return &_data[_start];
     }
 
+    // get the address of first element
+    char* getFirstAddress()
+    {
+        return &_data[_start];
+    }
+
+    // get the address of circle buffer
     const char* getRowData() const
     {
         return &_data[0];
@@ -299,7 +323,7 @@ public:
     {
         assert(!isEmpty());
         char ret = _data[_start];
-        _start   = next(_start);
+        _start   = next(_start, 1);
         _length--;
         return ret;
     }
@@ -309,29 +333,24 @@ public:
     {
         assert(!isFull());
         _data[_end] = ch;
-        _end        = next(_end);
+        _end        = next(_end, 1);
         _length++;
     }
 
     // return the size that can be stored
     size_t getAvailableSize()
     {
-        return size - _length;
+        return _size - _length;
     }
 
-    // if available size is enougth, push x and return true
-    // otherwise return false
+    // assume size is enougth
     template <typename T>
-    bool push(const T& x)
+    void push(const T& x)
     {
         static_assert(std::is_pod_v<T>);
         static_assert(!std::is_pointer_v<T>);
-        if (getAvailableSize() < sizeof(T))
-        {
-            return false;
-        }
+        assert(getAvailableSize() >= sizeof(T));
         push(&x, sizeof(T));
-        return true;
     }
 
     // push data stream with maximun size
@@ -339,7 +358,7 @@ public:
     size_t push(const void* data, size_t maxSize)
     {
         size_t actualSize    = min(maxSize, getAvailableSize());
-        size_t toEndSize     = size - _end;
+        size_t toEndSize     = _size - _end;
         size_t firstCopySize = min(actualSize, toEndSize);
         std::memcpy(&_data[_end], data, firstCopySize);
         if (actualSize > firstCopySize)
@@ -348,19 +367,19 @@ public:
                         static_cast<const char*>(data) + firstCopySize,
                         actualSize - firstCopySize);
         }
+        _end = next(_end, actualSize);
         _length += actualSize;
-        _end += actualSize;
-        if (_end >= size)
-        {
-            _end -= size;
-        }
         return actualSize;
     }
 
     // return continous size of data can be read from first element
     size_t getContinousSize() const
     {
-        return size - _start;
+        if (_start > _end)
+        {
+            return _size - _start;
+        }
+        return _end - _start;
     }
 
     // remove continous size of data can be read from first element
@@ -368,35 +387,71 @@ public:
     {
         if (_start <= _end)
         {
-            _end = 0;
+            _start  = 0;
+            _end    = 0;
+            _length = 0;
         }
-        _start = 0;
+        else
+        {
+            _start  = 0;
+            _length = _end - _start;
+        }
     }
 
     // pop fixed size data
-    void pop(int popSize)
+    void popN(int popSize)
     {
         assert(!isEmpty());
         assert(_length >= popSize);
-        _start += popSize;
-        if (_start > size)
-        {
-            _start -= size;
-        }
+        _start = next(_start, popSize);
         _length -= popSize;
     }
 
+    // reutrn the size of element stored
     size_t getSize() const
     {
         return _length;
     }
 
-    void swap(_CircleQueue<char, size, true>& right)
+    // new size must not less than current size
+    // all old data are retained
+    void resetCapcity(size_t newSize)
     {
-        std::swap(_data, right._data);
-        std::swap(_start, right._start);
-        std::swap(_end, right._end);
-        std::swap(_length, right._length);
+        assert(_length <= newSize);
+        auto newData = new char[newSize];
+        auto csize   = getContinousSize();
+        memcpy(newData, getFirstAddress(), getContinousSize());
+        if (_end < _start)
+        {
+            memcpy(newData + csize, getRowData(), getSize() - csize);
+        }
+        delete[] _data;
+        _data  = newData;
+        _start = 0;
+        _end   = next(_start, _length);
+        _size  = newSize;
+    }
+
+    // {wirting address, max size}
+    // used for direct wirte for avoid copying buffer data
+    // must call endDirectWrite once wirting is finished
+    std::pair<char*, size_t> beginDirectWrite()
+    {
+        if (_start > _end)
+        {
+            return {_data + _end, _start - _end};
+        }
+        return {_data + _end, _size - _end};
+    }
+
+    // used for direct wirte for avoid copying buffer data
+    // must be called after beginDirectWrite
+    // writtenSize is size of data that have been writed
+    void endDirectWrite(size_t writtenSize)
+    {
+        _end = next(_end, writtenSize);
+        _length += writtenSize;
+        assert(_length <= _size);
     }
 
 private:
@@ -405,22 +460,20 @@ private:
         return a < b ? a : b;
     }
 
-    int next(int x) const
+    size_t next(size_t x, size_t n) const
     {
-        int ret = x + 1;
-        if (ret >= size)
+        size_t ret = x + n;
+        if (ret >= _size)
         {
-            ret -= size;
+            ret -= _size;
         }
         return ret;
     }
 
 private:
-    char* _data   = new char[size];
-    int   _start  = 0;
-    int   _end    = 0;
-    int   _length = 0;
+    size_t _size;
+    char*  _data;
+    size_t _start;
+    size_t _end;
+    size_t _length;
 };
-
-template <typename T, size_t size>
-using CircleQueue = _CircleQueue<T, size, std::is_pod_v<T>>;

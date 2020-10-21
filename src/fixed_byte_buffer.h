@@ -82,21 +82,31 @@ public:
         }
     }
 
-    // append pointer, start by 0x prefix
-    void append(void* x)
+    template <typename T>
+    void append(T* x)
     {
-        constexpr int size = 22;
+        append(static_cast<const void*>(x));
+    }
+
+    // append pointer, start by 0x prefix
+    void append(const void* x)
+    {
+        constexpr int size = sizeof(void*) + 2;
         if (_isOverflow)
         {  // cannot hold any message
             return;
         }
-        if (N - _size < size)
+        append("0x", 2);
+        std::to_chars_result&& result = std::to_chars(
+            _data + _size, _data + N, reinterpret_cast<size_t>(x), 16);
+        if (result.ec == std::errc::value_too_large)
         {
             _isOverflow = true;
-            return;
         }
-        append("0x", 2);
-        append(static_cast<size_t>(size));
+        else
+        {
+            _size = result.ptr - _data;
+        }
     }
 
     // append data. if in overflow state, do nothing.

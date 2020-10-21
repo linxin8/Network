@@ -2,19 +2,20 @@
 #include "channel.h"
 #include "socket.h"
 #include "tcp_buffer.h"
+#include "type.h"
 
-class TcpConnection
+class TcpConnection : Noncopyable
 {
 public:
     TcpConnection(Socket socket);
 
 public:
     // send size-fixed data asynchronously
-    void sendAsyn(const void* data, size_t size);
+    size_t sendAsyn(const void* data, size_t size);
 
     // received the data with the maximun size
     // return acctually size of data received
-    size_t recv(const void* data, size_t maxSize);
+    size_t recv(void* data, size_t maxSize);
 
     // called when data is sent
     // argument is the acctually size of data sent
@@ -40,6 +41,16 @@ public:
         _onClose = std::move(onClose);
     }
 
+    const Socket& getSocket() const
+    {
+        return _socket;
+    }
+
+    TcpBuffer& getRecvBuffer()
+    {
+        return _recvBuffer;
+    }
+
 private:
     void onRead();
     void onWrite();
@@ -50,7 +61,7 @@ private:
     std::string                 _name;
     Socket                      _socket;
     Channel                     _channel;
-    std::vector<TcpBuffer>      _sendBuffer;
+    TcpBuffer                   _sendBuffer;
     TcpBuffer                   _recvBuffer;
     std::function<void(size_t)> _onReadyToRead;
     std::function<void(size_t)> _onSent;

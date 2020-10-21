@@ -80,6 +80,61 @@ TEST(CircleQueue, pod)
     GTEST_ASSERT_EQ(queue.isEmpty(), true);
 }
 
+TEST(CircleQueue, circle)
+{
+    CircleQueue<int, 3> queue;
+    GTEST_ASSERT_EQ(queue.isEmpty(), true);
+    queue.push(1);
+    queue.push(2);
+    queue.push(3);
+    GTEST_ASSERT_EQ(queue.isFull(), true);
+    queue.pop();
+    queue.push(4);
+    GTEST_ASSERT_EQ(queue.isEmpty(), false);
+    GTEST_ASSERT_EQ(queue.getSize(), 3);
+    GTEST_ASSERT_EQ(queue.take(), 2);
+    GTEST_ASSERT_EQ(queue.getFront(), 3);
+    queue.push(5);
+    GTEST_ASSERT_EQ(queue.take(), 3);
+    GTEST_ASSERT_EQ(queue.take(), 4);
+    GTEST_ASSERT_EQ(queue.take(), 5);
+    GTEST_ASSERT_EQ(queue.isEmpty(), true);
+}
+
+TEST(CircleByteStreamQueue, byteStream)
+{
+    CircleByteStreamQueue queue{10};
+    GTEST_ASSERT_EQ(queue.isEmpty(), true);
+    queue.push("12345");
+    GTEST_ASSERT_EQ(queue.isEmpty(), false);
+    GTEST_ASSERT_EQ(std::strcmp(queue.getFirstAddress(), "12345"), 0);
+    queue.popN(4);
+    queue.push("12345");
+    // 5 \0 x x 5 \0 1 2 3 4
+    GTEST_ASSERT_EQ(*queue.getRowData(), '5');
+    GTEST_ASSERT_EQ(std::strcmp(queue.getFirstAddress(), "5"), 0);
+    queue.popN(2);
+    GTEST_ASSERT_EQ(std::strncmp(queue.getFirstAddress(), "1234", 4), 0);
+    GTEST_ASSERT_EQ(queue.getContinousSize(), 4);
+    queue.popContinouData();
+    GTEST_ASSERT_EQ(queue.getContinousSize(), 2);
+    GTEST_ASSERT_EQ(std::strcmp(queue.getFirstAddress(), "5"), 0);
+    // 5 \0 x x x x x x x x
+    queue.push("1234");
+    // 5 \0 1 2 3 4 \0 x x x
+    queue.popN(4);
+    // x x x x 3 4 \0 x x x
+    queue.push("1234");
+    // 4 \0 x x 3 4 \0 1 2 3
+    queue.resetCapcity(20);
+    // 3 4 \0 1 2 3 4 \0 . . .
+    GTEST_ASSERT_EQ(queue.getContinousSize(), 8);
+    GTEST_ASSERT_EQ(queue.getSize(), 8);
+    GTEST_ASSERT_EQ(queue.getAvailableSize(), 12);
+    GTEST_ASSERT_EQ(std::memcmp(queue.getFirstAddress(), "34\0001234\0", 8), 0);
+    GTEST_ASSERT_EQ(queue.getFirstAddress(), queue.getRowData());
+}
+
 int main(int argc, char* argv[])
 {
     testing::InitGoogleTest(&argc, argv);

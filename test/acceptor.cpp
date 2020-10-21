@@ -9,21 +9,24 @@
 
 TEST(Acceptor, listen)
 {
-    InetAddress         address{9000};
-    Acceptor            acceptor{address};
-    std::vector<Socket> socketVector;
-    acceptor.setOnAcception([&](Socket socket) {
+    InetAddress                                 address{9000};
+    Acceptor                                    acceptor{address};
+    std::vector<std::unique_ptr<TcpConnection>> connectionVector;
+    char                                        buffer[2333];
+    acceptor.setOnAcception([&](std::unique_ptr<TcpConnection> connection) {
+        const auto& socket = connection->getSocket();
         std::cout << "accept fd " << socket.getFd() << " local address "
                   << socket.getLocalAddress().getIpString() << " "
                   << socket.getLocalAddress().getPort() << " peer address "
                   << socket.getPeerAddress().getIpString() << " "
                   << socket.getPeerAddress().getPort() << std::endl;
-        socketVector.push_back(std::move(socket));
-
-        Channel channel{socket.getFd()};
-        channel.setOnRead([]() {
-
+        connection->setOnReadyToRead([&](size_t size) {
+            std::cout << "ready to read " << size;
+            LOG_DEBUG() << size;
+            connectionVector[0]->recv(buffer, size);
+            connectionVector[0]->sendAsyn(buffer, size);
         });
+        connectionVector.push_back(std::move(connection));
     });
     auto threadEntry = [&] {
         std::cout << "start listen " << address.getIpString() << " "

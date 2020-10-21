@@ -1,11 +1,13 @@
 #pragma once
+#include "type.h"
 #include <functional>
 
-class Channel
+class Channel : Noncopyable
 {
 public:
     // not take ownship of fd
     Channel(int fd);
+    Channel(Channel&& right);
     ~Channel();
 
     int getEvents() const
@@ -29,15 +31,15 @@ public:
     }
     void setOnWrite(std::function<void()> onWrite)
     {
-        _onWrite = std::move(_onWrite);
+        _onWrite = std::move(onWrite);
     }
     void setOnClose(std::function<void()> onClose)
     {
-        _onClose = std::move(_onClose);
+        _onClose = std::move(onClose);
     }
     void setOnError(std::function<void()> onError)
     {
-        _onError = std::move(_onError);
+        _onError = std::move(onError);
     }
 
     constexpr bool isInEpoll() const
@@ -48,9 +50,11 @@ public:
     void enableRead();
     void disableRead();
     void enableWrite();
+    void enableReadAndWrite();
     void disableWrite();
-    bool isEnableRead();
-    bool isEnbleWrite();
+    void disableReadAndWrite();
+    bool isEnableRead() const;
+    bool isEnbleWrite() const;
     // get index of pool channel list.
     // if not set, return -1
     int getIndex() const
