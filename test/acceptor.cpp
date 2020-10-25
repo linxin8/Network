@@ -20,12 +20,14 @@ TEST(Acceptor, listen)
                   << socket.getLocalAddress().getPort() << " peer address "
                   << socket.getPeerAddress().getIpString() << " "
                   << socket.getPeerAddress().getPort() << std::endl;
-        connection->setOnReadyToRead([&](size_t size) {
-            std::cout << "ready to read " << size;
-            LOG_DEBUG() << size;
-            connectionVector[0]->recv(buffer, size);
-            connectionVector[0]->sendAsyn(buffer, size);
+        auto index = connectionVector.size();
+        connection->setOnReadyToRead([&, index](size_t size) {
+            LOG_INFO() << "ready to read " << size;
+            connectionVector[index]->recv(buffer, size);
+            connectionVector[index]->sendAsyn(buffer, size);
         });
+        connection->setOnSent(
+            [&, index](size_t size) { connectionVector[index]->close(); });
         connectionVector.push_back(std::move(connection));
     });
     auto threadEntry = [&] {
@@ -38,7 +40,7 @@ TEST(Acceptor, listen)
     thread.start();
     while (true)
     {
-        CurrentThread::sleep(200);
+        CurrentThread::sleep(2000);
     }
 }
 

@@ -44,7 +44,7 @@ void EPoll::pool(int msecond, std::vector<Channel*>& channel)
 void EPoll::add(Channel* channel)
 {
     assert(channel->getIndex() == -1);
-    LOG_DEBUG() << "channel" << channel << "fd" << channel->getFd();
+    LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     channel->setIndex(static_cast<int>(_channelVector.size()));
     _channelVector.push_back(channel);
     control(EPOLL_CTL_ADD, channel);
@@ -53,14 +53,14 @@ void EPoll::add(Channel* channel)
 void EPoll::modify(Channel* channel)
 {
     assert(_channelVector.at(channel->getIndex()) == channel);
-    LOG_DEBUG() << "channel" << channel << "fd" << channel->getFd();
+    LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     control(EPOLL_CTL_MOD, channel);
 }
 
 void EPoll::remove(Channel* channel)
 {
     assert(_channelVector.at(channel->getIndex()) == channel);
-    LOG_DEBUG() << "channel" << channel << "fd" << channel->getFd();
+    LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     control(EPOLL_CTL_DEL, channel);
     auto index = channel->getIndex();
     _channelVector.back()->setIndex(index);
