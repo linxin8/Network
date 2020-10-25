@@ -16,7 +16,7 @@ Acceptor::Acceptor(const InetAddress& listenAddress) :
     _socket.setReuseAddress(true);
     _socket.setReusePort(true);
     _socket.bind(listenAddress);
-    _channel.setOnRead(std::bind(&Acceptor::onAcceptable, this));
+    _channel.setOnRead(std::bind(&Acceptor::onAcception, this));
 }
 
 Acceptor::~Acceptor()
@@ -33,7 +33,7 @@ void Acceptor::listen()
     _channel.enableRead();
 }
 
-void Acceptor::onAcceptable()
+void Acceptor::onAcception()
 {
     auto [ok, socket] = _socket.accept();
     if (ok)

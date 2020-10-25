@@ -1,29 +1,28 @@
 #pragma once
+#include <cstdint>
 #include <functional>
+#include <memory>
+
+class Acceptor;
 
 class TcpServer
 {
 public:
-    using CallBack = std::function<void()>;
+    TcpServer(uint16_t port);
 
-public:
-    TcpServer();
+    void setOnAcception(std::function<void()> callback)
+    {
+        _onAcception = std::move(callback);
+    }
 
-    void setOnConection(const CallBack& callback)
-    {
-        _onConnection = callback;
-    }
-    void setonMessageReceived(const CallBack& callback)
-    {
-        _onMessageReceived = callback;
-    }
-    void setonMessageSend(const CallBack& callback)
-    {
-        _onMessageSend = callback;
-    }
+    void listen();
+
+    bool isListening() const;
 
 private:
-    CallBack _onConnection;
-    CallBack _onMessageReceived;
-    CallBack _onMessageSend;
+    void onAcception();
+
+private:
+    std::function<void()>     _onAcception;
+    std::unique_ptr<Acceptor> _acceptor;
 };

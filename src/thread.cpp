@@ -125,7 +125,7 @@ struct PThreadMainArgument
                         pid_t*                tid,
                         CountDownLatch*       latch) :
         _mainFunction{std::move(mainFunction)},
-        _name{std::move(_name)},
+        _name{std::move(name)},
         _tid{tid},
         _latch{latch}
     {
@@ -144,7 +144,7 @@ void* phtreadMain(void* data)
     {
         CurrentThread::setName(argument->_name);
     }
-    prctl(PR_SET_NAME, CurrentThread::getName());
+    prctl(PR_SET_NAME, CurrentThread::getName().c_str());
     try
     {
         argument->_mainFunction();

@@ -55,7 +55,7 @@ public:
     template <typename T>
     T peek()
     {
-        static_assert(std::is_pod_v<T>);
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         assert(getSize() >= sizeof(T));
         if (_queue.getContinousSize() >= sizeof(T))
         {
@@ -76,7 +76,7 @@ public:
     template <typename T>
     T take()
     {
-        static_assert(std::is_pod_v<T>);
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         assert(getSize() >= sizeof(T));
         char buffer[sizeof(T)];
         if (_queue.getContinousSize() >= sizeof(T))
@@ -109,7 +109,7 @@ public:
     template <typename T>
     void append(const T& x)
     {
-        static_assert(std::is_pod_v<T>);
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         static_assert(!std::is_pointer_v<T>);
         assert(getAvailableSize() >= sizeof(T));
         append(&x, sizeof(T));

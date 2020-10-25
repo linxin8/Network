@@ -8,12 +8,12 @@
 template <typename T, size_t size, bool>
 class _CircleQueue;
 
-// not thread safe, only allow static pdd element
+// not thread safe, only allow static pod element
 template <typename T, size_t size>
 class _CircleQueue<T, size, true>
 {
     static_assert(size > 1);
-    static_assert(std::is_pod_v<T>);
+    static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
     static_assert(!std::is_pointer_v<T>);
 
 public:
@@ -118,7 +118,8 @@ class _CircleQueue<T, size, false>
 {
     static_assert(size > 1);
     static_assert(
-        !std::is_pod_v<T>);  // for performace, use CircleQueue instead
+        !(std::is_standard_layout_v<T> &&
+          std::is_trivial_v<T>));  // for performace, use CircleQueue instead
 
 public:
     ~_CircleQueue()
@@ -248,7 +249,8 @@ private:
 };
 
 template <typename T, size_t size>
-using CircleQueue = _CircleQueue<T, size, std::is_pod_v<T>>;
+using CircleQueue =
+    _CircleQueue<T, size, std::is_standard_layout_v<T> && std::is_trivial_v<T>>;
 
 // not thread safe
 class CircleByteStreamQueue
@@ -347,7 +349,7 @@ public:
     template <typename T>
     void push(const T& x)
     {
-        static_assert(std::is_pod_v<T>);
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         static_assert(!std::is_pointer_v<T>);
         assert(getAvailableSize() >= sizeof(T));
         push(&x, sizeof(T));

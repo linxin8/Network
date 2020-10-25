@@ -52,17 +52,17 @@ public:
         return _addr.sin_addr.s_addr;
     }
 
-    constexpr socklen_t getSocketAddressSize() const
+    socklen_t getSocketAddressSize() const
     {
         return isIp4() ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
     }
 
-    constexpr const sockaddr& getSocketAddress() const
+    const sockaddr& getSocketAddress() const
     {
         return reinterpret_cast<const sockaddr&>(_addr);
     }
 
-    constexpr sockaddr& getSocketAddress()
+    sockaddr& getSocketAddress()
     {
         return reinterpret_cast<sockaddr&>(_addr);
     }
@@ -83,7 +83,7 @@ private:
     constexpr InetAddress() : _addr6{} {};
     constexpr InetAddress(sockaddr_in address) : _addr{address} {};
     constexpr InetAddress(sockaddr_in6 address) : _addr6{address} {};
-    constexpr InetAddress(sockaddr address) :
+    InetAddress(sockaddr address) :
         _addr{
             reinterpret_cast<sockaddr_in&>(address)  // it is safe to cast
         } {};
