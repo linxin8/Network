@@ -16,11 +16,15 @@ TcpConnection::TcpConnection(Socket socket) :
     _channel.setOnError(std::bind(&TcpConnection::onError, this));
     _channel.setOnRead(std::bind(&TcpConnection::onRead, this));
     _channel.setOnWrite(std::bind(&TcpConnection::onWrite, this));
-    _channel.enableReadAndWrite();
+    _channel.enableRead();
 }
 
 size_t TcpConnection::sendAsyn(const void* data, size_t size)
 {
+    if (size > 0 && !_channel.isEnbleWrite())
+    {
+        _channel.enableWrite();
+    }
     return _sendBuffer.append(data, size);
 }
 
@@ -68,6 +72,11 @@ void TcpConnection::onWrite()
     else if (size > 0)
     {
         _sendBuffer.popN(size);
+        if (_sendBuffer.getSize() == 0)
+        {
+            // unregister channel writing event
+            _channel.disableWrite();
+        }
         if (_onSent)
         {
             _onSent(size);
@@ -88,4 +97,10 @@ void TcpConnection::onClose()
         _onClose();
     }
     // not close fd
+}
+
+void TcpConnection::close()
+{
+    _channel.disableReadAndWrite();
+    _socket.close();
 }

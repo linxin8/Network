@@ -51,6 +51,8 @@ public:
         return _recvBuffer;
     }
 
+    void close();
+
 private:
     void onRead();
     void onWrite();
