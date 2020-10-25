@@ -11,3 +11,4 @@ old
 *.txt
 callgrind*
 *.sh
+!**/CMakeLists.txt
