@@ -1,5 +1,6 @@
 #pragma once
 #include "circle_queue.h"
+#include "log.h"
 #include <bit>
 #include <cassert>
 #include <cstring>
@@ -56,7 +57,7 @@ public:
     T peek()
     {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
-        assert(getSize() >= sizeof(T));
+        LOG_ASSERT(getSize() >= sizeof(T));
         if (_queue.getContinousSize() >= sizeof(T))
         {
             return reinterpret_cast<T&>(*_queue.getFirstAddress());
@@ -77,7 +78,7 @@ public:
     T take()
     {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
-        assert(getSize() >= sizeof(T));
+        LOG_ASSERT(getSize() >= sizeof(T));
         char buffer[sizeof(T)];
         if (_queue.getContinousSize() >= sizeof(T))
         {
@@ -111,7 +112,7 @@ public:
     {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         static_assert(!std::is_pointer_v<T>);
-        assert(getAvailableSize() >= sizeof(T));
+        LOG_ASSERT(getAvailableSize() >= sizeof(T));
         append(&x, sizeof(T));
     }
 

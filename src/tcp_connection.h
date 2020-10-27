@@ -31,7 +31,7 @@ public:
         _onReadyToRead = std::move(onReadyToRead);
     }
 
-    void setOnError(std::function<void()> onError)
+    void setOnError(std::function<void(int errorNo)> onError)
     {
         _onError = std::move(onError);
     }
@@ -60,13 +60,13 @@ private:
     void onClose();
 
 private:
-    std::string                 _name;
-    Socket                      _socket;
-    Channel                     _channel;
-    TcpBuffer                   _sendBuffer;
-    TcpBuffer                   _recvBuffer;
-    std::function<void(size_t)> _onReadyToRead;
-    std::function<void(size_t)> _onSent;
-    std::function<void()>       _onError;
-    std::function<void()>       _onClose;
+    std::string                      _name;
+    Socket                           _socket;
+    Channel                          _channel;
+    TcpBuffer                        _sendBuffer;
+    TcpBuffer                        _recvBuffer;
+    std::function<void(size_t)>      _onReadyToRead;
+    std::function<void(size_t)>      _onSent;
+    std::function<void(int errorNo)> _onError;
+    std::function<void()>            _onClose;
 };

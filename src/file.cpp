@@ -1,4 +1,5 @@
 #include "file.h"
+#include "log.h"
 #include <cassert>
 #include <cstdlib>
 #include <sys/stat.h>
@@ -6,7 +7,7 @@
 WriteOnlyFile::WriteOnlyFile(const char* path) :
     _file{fopen(path, "w")}, _byteWrited{0}
 {
-    assert(_file);
+    LOG_ASSERT(_file);
     struct stat stats;
     if (fstat(fileno(_file), &stats) == -1)
     {  // POSIX only

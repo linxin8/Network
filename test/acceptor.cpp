@@ -37,7 +37,7 @@ TEST(Acceptor, listen)
     };
 
     EventLoopThread thread{threadEntry};
-    thread.start();
+    thread.startLoop();
     while (true)
     {
         CurrentThread::sleep(2000);

@@ -5,14 +5,16 @@ EventLoopThread::EventLoopThread() : EventLoopThread{std::function<void()>()} {}
 EventLoopThread::EventLoopThread(std::function<void()> initFunc) :
     _thread{std::bind(&EventLoopThread::threadEntry, this)},
     _initFunc{std::move(initFunc)},
-    _isEventLoopReady{}
+    _isEventLoopReady{},
+    _eventLoop{nullptr}
 {
 }
 EventLoopThread::EventLoopThread(std::function<void()> initFunc,
                                  std::string           name) :
     _thread{std::bind(&EventLoopThread::threadEntry, this), std::move(name)},
     _initFunc{std::move(initFunc)},
-    _isEventLoopReady{}
+    _isEventLoopReady{},
+    _eventLoop{nullptr}
 {
 }
 
@@ -22,9 +24,9 @@ EventLoopThread::~EventLoopThread()
     _thread.join();
 }
 
-void EventLoopThread::start()
+void EventLoopThread::startLoop()
 {
-    assert(!_thread.isStarted());
+    LOG_ASSERT(!_thread.isStarted());
     _thread.start();
     while (!_isEventLoopReady)
     {  // spin lock
@@ -34,11 +36,11 @@ void EventLoopThread::start()
 
 void EventLoopThread::threadEntry()
 {
-    EventLoop loop;
+    _eventLoop = std::make_unique<EventLoop>();
     if (_initFunc)
     {
         _initFunc();
     }
     _isEventLoopReady = true;
-    loop.start();
+    _eventLoop->start();
 }

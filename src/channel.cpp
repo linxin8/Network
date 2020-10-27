@@ -3,9 +3,11 @@
 #include "log.h"
 #include "thread.h"
 #include <sys/epoll.h>
+#include <sys/socket.h>
 
 Channel::Channel(int fd) :
-    _events{},
+    _listenEvent{},
+    _eventGenerated{},
     _fd{fd},
     _onRead{},
     _onWrite{},
@@ -16,7 +18,7 @@ Channel::Channel(int fd) :
 }
 
 Channel::Channel(Channel&& right) :
-    _events{std::move(right._events)},
+    _listenEvent{std::move(right._listenEvent)},
     _fd{std::move(right._fd)},
     _onRead{std::move(right._onRead)},
     _onWrite{std::move(right._onWrite)},
@@ -48,7 +50,8 @@ Channel::~Channel()
 
 void Channel::handleEvent()
 {
-    if ((_events & EPOLLHUP) && !(_events & EPOLLIN))
+    LOG_ASSERT(_eventGenerated != 0);
+    if ((_eventGenerated & EPOLLHUP) && !(_eventGenerated & EPOLLIN))
     {
         if (_onClose)
         {
@@ -56,29 +59,33 @@ void Channel::handleEvent()
         }
     }
 
-    if (_events & EPOLLERR)
+    if (_eventGenerated & EPOLLERR)
     {
-        LOG_ERROR() << "error occurred EPOLLERR";
         if (_onError)
         {
-            _onError();
+            int       option;
+            socklen_t length = sizeof(option);
+            bool      error =
+                -1 == getsockopt(_fd, SOL_SOCKET, SO_ERROR, &option, &length);
+            _onError(error ? errno : option);
         }
     }
 
-    if (_events & (EPOLLIN | EPOLLRDHUP | EPOLLPRI))
+    if (_eventGenerated & (EPOLLIN | EPOLLRDHUP | EPOLLPRI))
     {  // ready to read
         if (_onRead)
         {
             _onRead();
         }
     }
-    if (_events & EPOLLOUT)
+    if (_eventGenerated & EPOLLOUT)
     {  // ready to write
         if (_onWrite)
         {
             _onWrite();
         }
     }
+    _eventGenerated = 0;
 }
 
 void Channel::update()
@@ -86,7 +93,7 @@ void Channel::update()
     auto& eventLoop = CurrentThread::getEventLoop();
     if (isInEpoll())
     {
-        if (_events == 0)
+        if (_listenEvent == 0)
         {  // listen none event, just remove channel
             eventLoop.removeChannel(this);
         }
@@ -97,7 +104,7 @@ void Channel::update()
     }
     else
     {
-        if (_events != 0)
+        if (_listenEvent != 0)
         {
             eventLoop.addChannel(this);
         }
@@ -106,43 +113,43 @@ void Channel::update()
 
 void Channel::enableRead()
 {
-    _events |= EPOLLIN | EPOLLPRI;
+    _listenEvent |= EPOLLIN | EPOLLPRI;
     update();
 }
 
 void Channel::disableRead()
 {
-    _events &= ~(EPOLLIN | EPOLLPRI);
+    _listenEvent &= ~(EPOLLIN | EPOLLPRI);
     update();
 }
 void Channel::enableWrite()
 {
-    _events |= EPOLLOUT;
+    _listenEvent |= EPOLLOUT;
     update();
 }
 void Channel::disableWrite()
 {
-    _events &= ~EPOLLOUT;
+    _listenEvent &= ~EPOLLOUT;
     update();
 }
 
 void Channel::enableReadAndWrite()
 {
-    _events |= EPOLLIN | EPOLLPRI | EPOLLOUT;
+    _listenEvent |= EPOLLIN | EPOLLPRI | EPOLLOUT;
     update();
 }
 
 void Channel::disableReadAndWrite()
 {
-    _events = 0;
+    _listenEvent = 0;
     update();
 }
 
 bool Channel::isEnableRead() const
 {
-    return _events & (EPOLLIN | EPOLLPRI);
+    return _listenEvent & (EPOLLIN | EPOLLPRI);
 }
 bool Channel::isEnbleWrite() const
 {
-    return _events & EPOLLOUT;
+    return _listenEvent & EPOLLOUT;
 }

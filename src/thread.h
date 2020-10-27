@@ -33,7 +33,7 @@ namespace CurrentThread
     }
     void sleep(int64_t microseconds);
     // @demangle: whether use demangle to deformat function name
-    std::string getStackTrace(bool demangle = true);
+    std::string getStackTrace(int maxFrame = 10, bool demangle = true);
 }  // namespace CurrentThread
 
 class Thread : Noncopyable

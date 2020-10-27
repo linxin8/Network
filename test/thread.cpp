@@ -4,9 +4,12 @@
 
 void threadMain()
 {
-    std::cout << "name: " << CurrentThread::getName() << " tid: " << CurrentThread::getTidString()
-              << " isMainThread: " << CurrentThread::isMainThread() << std::endl;
-    GTEST_ASSERT_EQ(std::to_string(CurrentThread::getTid()), CurrentThread::getTidString());
+    std::cout << "name: " << CurrentThread::getName()
+              << " tid: " << CurrentThread::getTidString()
+              << " isMainThread: " << CurrentThread::isMainThread()
+              << std::endl;
+    GTEST_ASSERT_EQ(std::to_string(CurrentThread::getTid()),
+                    CurrentThread::getTidString());
     GTEST_ASSERT_EQ(CurrentThread::isMainThread(), false);
 }
 

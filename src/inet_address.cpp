@@ -13,8 +13,10 @@ InetAddress::InetAddress(uint16_t port, bool isLoopBackOnly, bool isIpv6)
 {
     static_assert(__builtin_offsetof(InetAddress, _addr) == 0);
     static_assert(__builtin_offsetof(InetAddress, _addr6) == 0);
-    static_assert(__builtin_offsetof(sockaddr_in, sin_family) == __builtin_offsetof(sockaddr_in6, sin6_family));
-    static_assert(__builtin_offsetof(sockaddr_in, sin_port) == __builtin_offsetof(sockaddr_in6, sin6_port));
+    static_assert(__builtin_offsetof(sockaddr_in, sin_family) ==
+                  __builtin_offsetof(sockaddr_in6, sin6_family));
+    static_assert(__builtin_offsetof(sockaddr_in, sin_port) ==
+                  __builtin_offsetof(sockaddr_in6, sin6_port));
     if (isIpv6)
     {
         bzero(&_addr6, sizeof(_addr6));
@@ -40,7 +42,7 @@ std::string InetAddress::getIpString() const
 
 std::string InetAddress::getIp4String() const
 {
-    assert(isIp4());
+    LOG_ASSERT(isIp4());
     char buffer[32];
     if (inet_ntop(AF_INET, &_addr.sin_addr, buffer, sizeof(buffer)) == nullptr)
     {
@@ -51,17 +53,20 @@ std::string InetAddress::getIp4String() const
 
 std::string InetAddress::getIp6String() const
 {
-    assert(isIp6());
+    LOG_ASSERT(isIp6());
     char buffer[64];
-    if (inet_ntop(AF_INET6, &_addr6.sin6_addr, buffer, sizeof(buffer)) == nullptr)
+    if (inet_ntop(AF_INET6, &_addr6.sin6_addr, buffer, sizeof(buffer)) ==
+        nullptr)
     {
         LOG_ERROR() << std::strerror(errno);
     }
     return buffer;
 }
 
-std::pair<bool, InetAddress>
-InetAddress::resolve(std::string_view hostname, uint16_t port, bool isLoopBackOnly, bool isIpv6)
+std::pair<bool, InetAddress> InetAddress::resolve(std::string_view hostname,
+                                                  uint16_t         port,
+                                                  bool isLoopBackOnly,
+                                                  bool isIpv6)
 {
     /* Structure to contain information about address of a service provider.  */
     // struct addrinfo
@@ -72,8 +77,9 @@ InetAddress::resolve(std::string_view hostname, uint16_t port, bool isLoopBackOn
     //     int              ai_protocol;  /* Protocol for socket.  */
     //     socklen_t        ai_addrlen;   /* Length of socket address.  */
     //     struct sockaddr* ai_addr;      /* Socket address for socket.  */
-    //     char*            ai_canonname; /* Canonical name for service location.  */
-    //     struct addrinfo* ai_next;      /* Pointer to next in list.  */
+    //     char*            ai_canonname; /* Canonical name for service
+    //     location.  */ struct addrinfo* ai_next;      /* Pointer to next in
+    //     list.  */
     // };
     static thread_local char buffer[1024]{};
 
@@ -94,15 +100,18 @@ InetAddress::resolve(std::string_view hostname, uint16_t port, bool isLoopBackOn
     addrinfo* result;
     char      port_str[10];
     auto      r = std::to_chars(port_str, port_str + 10, port);
-    assert(r.ec == std::errc{});                                        // assume no error
-    assert(r.ptr < port_str + sizeof(port_str) / sizeof(port_str[0]));  // assume not overflow
+    LOG_ASSERT(r.ec == std::errc{});  // assume no error
+    LOG_ASSERT(r.ptr <
+               port_str + sizeof(port_str) /
+                              sizeof(port_str[0]));  // assume not overflow
     *r.ptr = '\0';
     if (getaddrinfo(hostname.begin(), port_str, &hint, &result) != 0)
     {  // error
-        LOG_DEBUG() << "cannto resove address:" << hostname.begin() << port_str << std::strerror(errno);
+        LOG_DEBUG() << "cannto resove address:" << hostname.begin() << port_str
+                    << std::strerror(errno);
         return {false, {}};
     }
-    assert(result != nullptr);
+    LOG_ASSERT(result != nullptr);
     InetAddress address{*result->ai_addr};
     freeaddrinfo(result);
     return {true, {address}};

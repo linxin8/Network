@@ -7,7 +7,7 @@
 
 EPoll::EPoll() : _fd{epoll_create1(EPOLL_CLOEXEC)}, _eventBuffer{8}
 {
-    assert(_fd >= 0);
+    LOG_ASSERT(_fd >= 0);
 }
 
 EPoll::~EPoll()
@@ -31,7 +31,7 @@ void EPoll::pool(int msecond, std::vector<Channel*>& channel)
         {
             auto& event = _eventBuffer[i];
             auto  ch    = static_cast<Channel*>(event.data.ptr);
-            ch->setEvents(event.events);
+            ch->setEventGenerated(event.events);
             channel.push_back(ch);
         }
         if (number == _eventBuffer.size())
@@ -43,7 +43,7 @@ void EPoll::pool(int msecond, std::vector<Channel*>& channel)
 
 void EPoll::add(Channel* channel)
 {
-    assert(channel->getIndex() == -1);
+    LOG_ASSERT(channel->getIndex() == -1);
     LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     channel->setIndex(static_cast<int>(_channelVector.size()));
     _channelVector.push_back(channel);
@@ -52,14 +52,14 @@ void EPoll::add(Channel* channel)
 
 void EPoll::modify(Channel* channel)
 {
-    assert(_channelVector.at(channel->getIndex()) == channel);
+    LOG_ASSERT(_channelVector.at(channel->getIndex()) == channel);
     LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     control(EPOLL_CTL_MOD, channel);
 }
 
 void EPoll::remove(Channel* channel)
 {
-    assert(_channelVector.at(channel->getIndex()) == channel);
+    LOG_ASSERT(_channelVector.at(channel->getIndex()) == channel);
     LOG_TRACE() << "channel" << channel << "fd" << channel->getFd();
     control(EPOLL_CTL_DEL, channel);
     auto index = channel->getIndex();
@@ -73,7 +73,7 @@ void EPoll::control(int operation, Channel* channel)
 {
     epoll_event event;
     event.data.ptr = static_cast<void*>(channel);
-    event.events   = channel->getEvents();
+    event.events   = channel->getListenEvents();
     bool error     = -1 == epoll_ctl(_fd, operation, channel->getFd(), &event);
     if (error)
     {

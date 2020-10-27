@@ -30,7 +30,10 @@ set(CXX_FLAGS
  # -MMD
  -std=c++20
  -rdynamic
+ -fcoroutines
  )
+
+ add_compile_options("-fcoroutines")
 
 
 add_subdirectory(src) 

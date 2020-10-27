@@ -11,7 +11,7 @@
 Socket::Socket(int fd) : _fd{fd}
 {
     // omly check if is socket, not check family, type, listening state
-    assert(sd_is_socket(fd, AF_UNSPEC, 0, -1));
+    LOG_ASSERT(sd_is_socket(fd, AF_UNSPEC, 0, -1));
 }
 
 Socket::Socket(bool isIp4, bool isBlock, bool isTcp)
@@ -68,15 +68,15 @@ std::pair<bool, Socket> Socket::accept()
 
     if (error)
     {
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-        {
-            // The socket is marked nonblocking and no connections are present
-            // to be accepted. do nothing.
-        }
-        else
-        {
-            LOG_ERROR() << std::strerror(errno);
-        }
+        // if (errno == EAGAIN || errno == EWOULDBLOCK)
+        // {
+        // The socket is marked nonblocking and no connections are present
+        // to be accepted. do nothing.
+        // }
+        // else
+        // {
+        LOG_ERROR() << std::strerror(errno);
+        // }
     }
     return {!error, Socket{fd}};
 }
@@ -164,6 +164,7 @@ void Socket::close()
         {
             LOG_ERROR() << std::strerror(errno);
         }
+        _fd = -1;
     }
 }
 
@@ -177,7 +178,7 @@ int Socket::getErrorNo() const
 
 ssize_t Socket::sendNonblocking(const void* data, size_t maxSize)
 {
-    assert(data != nullptr);
+    LOG_ASSERT(data != nullptr);
     ssize_t size = ::send(_fd, data, maxSize, MSG_DONTWAIT);
     if (size == -1)
     {
@@ -188,14 +189,14 @@ ssize_t Socket::sendNonblocking(const void* data, size_t maxSize)
 
 ssize_t Socket::recvNonblocking(void* data, size_t maxSize)
 {
-    assert(data != nullptr);
+    LOG_ASSERT(data != nullptr);
     ssize_t size = ::recv(_fd, data, maxSize, MSG_DONTWAIT);
     if (size == -1)
     {
-        if (errno != EAGAIN)
-        {
-            LOG_ERROR() << std::strerror(errno) << "fd" << _fd;
-        }
+        // if (errno != EAGAIN)
+        // {
+        LOG_ERROR() << std::strerror(errno) << "fd" << _fd;
+        // }
         return 0;
     }
     return size;

@@ -27,10 +27,12 @@ Acceptor::~Acceptor()
 
 void Acceptor::listen()
 {
-    assert(!_isListening);
+    LOG_ASSERT(!_isListening);
     _socket.listen();
     _isListening = true;
     _channel.enableRead();
+    LOG_INFO() << "listen" << _socket.getLocalAddress().getIpString() << "port"
+               << _socket.getLocalAddress().getPort();
 }
 
 void Acceptor::onAcception()
@@ -38,6 +40,8 @@ void Acceptor::onAcception()
     auto [ok, socket] = _socket.accept();
     if (ok)
     {
+        LOG_INFO() << "accept" << socket.getPeerAddress().getIpString()
+                   << "port" << socket.getPeerAddress().getPort();
         if (_onAcception)
         {
             _onAcception(std::make_unique<TcpConnection>(std::move(socket)));

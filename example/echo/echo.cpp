@@ -14,15 +14,16 @@ void service()
     char                                        buffer[2333];
     acceptor.setOnAcception([&](std::unique_ptr<TcpConnection> connection) {
         const auto& socket = connection->getSocket();
-        std::cout << "accept fd " << socket.getFd() << " local address "
-                  << socket.getLocalAddress().getIpString() << " "
-                  << socket.getLocalAddress().getPort() << " peer address "
-                  << socket.getPeerAddress().getIpString() << " "
-                  << socket.getPeerAddress().getPort() << std::endl;
+        LOG_INFO() << "accept fd" << socket.getFd() << "local address"
+                   << socket.getLocalAddress().getIpString()
+                   << socket.getLocalAddress().getPort() << "peer address"
+                   << socket.getPeerAddress().getIpString()
+                   << socket.getPeerAddress().getPort();
         auto index = connectionVector.size();
         connection->setOnReadyToRead([&, index](size_t size) {
             LOG_INFO() << "ready to read " << size;
             connectionVector[index]->recv(buffer, size);
+            connectionVector[index]->sendAsyn("echo back: ", 11);
             connectionVector[index]->sendAsyn(buffer, size);
         });
         connection->setOnSent(
@@ -30,16 +31,16 @@ void service()
         connectionVector.push_back(std::move(connection));
     });
     auto threadEntry = [&] {
-        std::cout << "start listen " << address.getIpString() << " "
-                  << address.getPort() << "\n";
+        LOG_INFO() << "start listen" << address.getIpString()
+                   << address.getPort();
         acceptor.listen();
     };
 
     EventLoopThread thread{threadEntry};
-    thread.start();
+    thread.startLoop();
     while (true)
     {
-        CurrentThread::sleep(2000);
+        CurrentThread::sleep(100);
     }
 }
 

@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <initializer_list>
+#include <string>
 
 // a appendable buffer, allow retreive from the begining of raw data.
 // when append the data that size is large than available size, no data is
@@ -64,7 +64,7 @@ public:
 
     // append data. if in overflow state, do nothing.
     template <typename T>
-    void append(T x)
+    void append(const T& x)
     {
         if (_isOverflow)
         {
@@ -80,6 +80,18 @@ public:
         {
             _size = result.ptr - _data;
         }
+    }
+
+    // append data. if in overflow state, do nothing.
+    void append(const std::string& x)
+    {
+        append(x.c_str(), x.length());
+    }
+
+    // append data. if in overflow state, do nothing.
+    void append(bool x)
+    {
+        x ? append("true", 4) : append("false", 5);
     }
 
     template <typename T>
@@ -144,7 +156,7 @@ public:
 
     // once it can not append data, it changed into overflow state and cannot
     // append data any more.
-    bool isOverflow()
+    bool isOverflow() const
     {
         return _isOverflow;
     }

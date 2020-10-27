@@ -34,13 +34,14 @@ namespace CurrentThread
             static_cast<long>(microseconds % microsecondsPerSecond * 1000);
         nanosleep(&ts, NULL);
     }
-    std::string getStackTrace(bool demangle)
+    std::string getStackTrace(int maxFrame, bool demangle)
     {
         std::string result;
         const int   max_frame = 200;
-        void*       frame[max_frame]{};
-        int         nptrs   = backtrace(frame, max_frame);
-        char**      strings = backtrace_symbols(frame, nptrs);
+        assert(maxFrame < max_frame);
+        void*  frame[max_frame]{};
+        int    nptrs   = backtrace(frame, maxFrame);
+        char** strings = backtrace_symbols(frame, nptrs);
         if (strings != nullptr)
         {
             size_t len = 256;
@@ -77,6 +78,7 @@ namespace CurrentThread
                         if (status == 0)
                         {
                             demangled = ret;  // ret could be realloc()
+                            result.append("\t--> ");
                             result.append(strings[i], left_par + 1);
                             result.append(demangled);
                             result.append(plus);
@@ -86,6 +88,7 @@ namespace CurrentThread
                     }
                 }
                 // Fallback to mangled names
+                result.append("\t--> ");
                 result.append(strings[i]);
                 result.push_back('\n');
             }
@@ -110,7 +113,7 @@ Thread::Thread(std::function<void()> threadMain, std::string name) :
 
 Thread::Thread(std::function<void()> threadMain) :
     Thread{std::move(threadMain),
-           std::string("Thread") + std::to_string(_numCreated + 1)}
+           std::string("thread") + std::to_string(_numCreated + 1)}
 {
 }
 

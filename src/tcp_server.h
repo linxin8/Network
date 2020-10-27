@@ -1,28 +1,53 @@
 #pragma once
+#include "acceptor.h"
+#include "event_loop_thread.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
-
-class Acceptor;
 
 class TcpServer
 {
 public:
     TcpServer(uint16_t port);
 
-    void setOnAcception(std::function<void()> callback)
+    void setOnNewConnection(std::function<void()> onNewConnection)
     {
-        _onAcception = std::move(callback);
+        _onNewConnection = std::move(onNewConnection);
     }
-
+    void setOnReadyToRead(std::function<void(int)> onReadyToRead)
+    {
+        _onReadyToRead = std::move(onReadyToRead);
+    }
     void listen();
 
     bool isListening() const;
 
-private:
-    void onAcception();
+    void close(int number);
 
 private:
-    std::function<void()>     _onAcception;
-    std::unique_ptr<Acceptor> _acceptor;
+    void onNewConnection(std::unique_ptr<TcpConnection> connection);
+    void onReadyToRead(int id);
+
+private:
+    std::function<void()>                                   _onNewConnection;
+    std::function<void(int)>                                _onReadyToRead;
+    Acceptor                                                _acceptor;
+    std::unordered_map<int, std::unique_ptr<TcpConnection>> _connectionMap;
+    int                                                     _connectionIndex;
+    EventLoopThread                                         _acceptorThread;
+};
+
+class TcpConnectionController
+{
+public:
+    TcpConnectionController(int id, TcpServer* server) :
+        _id{id}, _server{server}
+    {
+    }
+    void send(std::vector<char> data) {}
+    void read();
+
+private:
+    int        _id;
+    TcpServer* _server;
 };

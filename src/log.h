@@ -4,7 +4,9 @@
 #include "thread.h"
 #include "time.h"
 #include <bitset>
+#include <cassert>
 #include <condition_variable>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -24,7 +26,7 @@ public:
         return _buffer.availableSize();
     }
     template <typename T>
-    LoggerBuffer& operator<<(T x)
+    LoggerBuffer& operator<<(const T& x)
     {
         _buffer.append(x);
         return *this;
@@ -46,8 +48,13 @@ public:
         return _buffer.size();
     }
 
+    bool isOverFlow() const
+    {
+        return _buffer.isOverflow();
+    }
+
 private:
-    FixedByteBuffer<1000> _buffer;
+    FixedByteBuffer<4096> _buffer;
 };
 
 template <size_t N>
@@ -174,7 +181,7 @@ private:
     void writingThreadFunc();
 
 private:
-    constexpr static size_t fixedSize = 1024;
+    constexpr static size_t fixedSize = 2048;
     using LogBufferPool_t             = LogBufferPool<fixedSize>;
     std::string                                          _logName;
     int                                                  _flushInterval;
@@ -210,8 +217,10 @@ template <>
 class Logger<true>
 {
 public:
-    Logger(const char* formatted_prefix_file_line, const char* function) :
-        _buffer{}
+    Logger(const char* formatted_prefix_file_line,
+           const char* function,
+           const char* stackTrace = nullptr) :
+        _buffer{}, _stackTrace{stackTrace}
     {
         static bool logStarted = false;
         if (!logStarted)
@@ -221,12 +230,17 @@ public:
         }
         auto time = TimePoint::now();
         _buffer << time.hours() << ':' << time.minute() << ':' << time.second()
-                << ' ' << formatted_prefix_file_line << function << ' ';
+                << ' ' << CurrentThread::getName().c_str() << ' '
+                << formatted_prefix_file_line << function;
     }
     ~Logger()
     {
-        assert(_buffer.getSize() < _buffer.getAvaliableSize());
         _buffer << '\n';
+        if (_stackTrace != nullptr)
+        {
+            _buffer << _stackTrace << '\n';
+        }
+        assert(!_buffer.isOverFlow());
         _logger.append(static_cast<const char*>(_buffer.getRowdata()),
                        _buffer.getSize());
     }
@@ -234,13 +248,14 @@ public:
     template <typename T>
     Logger<true>& operator<<(const T& data)
     {
-        _buffer << data << ' ';
+        _buffer << ' ' << data;
         return *this;
     }
 
 private:
     static inline AsyncLogger _logger;
     LoggerBuffer              _buffer;
+    const char*               _stackTrace;
 };
 
 template <>
@@ -281,4 +296,16 @@ public:
 #define LOG_ERROR()                                                            \
     Logger<LoggerLevel::error >= logMinLevel>(                                 \
         _LOG_FORMAT("error", __FILE__, _STRINGIZE(__LINE__)),                  \
-        __PRETTY_FUNCTION__)
+        __PRETTY_FUNCTION__,                                                   \
+        CurrentThread::getStackTrace().c_str())
+
+#define LOG_ASSERT(x)                                                          \
+    {                                                                          \
+        bool condition = static_cast<bool>(x);                                 \
+        if (!condition)                                                        \
+        {                                                                      \
+            LOG_ERROR() << "assert failed \"" << #x << "\" :" << (x) << "\n"   \
+                        << CurrentThread::getStackTrace();                     \
+            abort();                                                           \
+        }                                                                      \
+    }

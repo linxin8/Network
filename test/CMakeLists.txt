@@ -27,3 +27,7 @@ target_link_libraries(acceptor ${GTEST_LIBRARIES} net)
 
 add_executable(tcp_buffer tcp_buffer.cpp)
 target_link_libraries(tcp_buffer ${GTEST_LIBRARIES} net)
+
+add_executable(tcp_server tcp_server.cpp)
+target_link_libraries(tcp_server ${GTEST_LIBRARIES} net)
+ 

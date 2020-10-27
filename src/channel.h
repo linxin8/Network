@@ -10,13 +10,13 @@ public:
     Channel(Channel&& right);
     ~Channel();
 
-    int getEvents() const
+    int getListenEvents() const
     {
-        return _events;
+        return _listenEvent;
     }
-    void setEvents(int events)
+    void setEventGenerated(int eventGenerated)
     {
-        _events = events;
+        _eventGenerated = eventGenerated;
     }
     int getFd() const
     {
@@ -37,7 +37,7 @@ public:
     {
         _onClose = std::move(onClose);
     }
-    void setOnError(std::function<void()> onError)
+    void setOnError(std::function<void(int errorNo)> onError)
     {
         _onError = std::move(onError);
     }
@@ -71,11 +71,12 @@ public:
     void handleEvent();
 
 private:
-    int                   _events;
-    int                   _fd;
-    std::function<void()> _onRead;
-    std::function<void()> _onWrite;
-    std::function<void()> _onClose;
-    std::function<void()> _onError;
-    int                   _index;  //  index of poll channel list
+    int                              _listenEvent;     // listened by epoll
+    int                              _eventGenerated;  // set by epoll
+    int                              _fd;
+    std::function<void()>            _onRead;
+    std::function<void()>            _onWrite;
+    std::function<void()>            _onClose;
+    std::function<void(int errorNo)> _onError;
+    int                              _index;  //  index of poll channel list
 };
