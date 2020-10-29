@@ -23,7 +23,15 @@ void EPoll::pool(int msecond, std::vector<Channel*>& channel)
                                msecond);
     if (number == -1)
     {
-        LOG_ERROR() << std::strerror(errno);
+        if (errno == EINTR)
+        {  // no error actually occurred
+           // do nothing
+           // usually occured when a new debug point is set
+        }
+        else
+        {
+            LOG_ERROR() << std::strerror(errno);
+        }
     }
     else
     {

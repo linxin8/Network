@@ -2,6 +2,8 @@
 #include "type.h"
 #include <functional>
 
+class EventLoop;
+
 class Channel : Noncopyable
 {
 public:
@@ -69,6 +71,10 @@ public:
     }
 
     void handleEvent();
+    void setEventLoop(EventLoop* eventLoop);
+
+private:
+    void onEventLoopChange();
 
 private:
     int                              _listenEvent;     // listened by epoll
@@ -79,4 +85,5 @@ private:
     std::function<void()>            _onClose;
     std::function<void(int errorNo)> _onError;
     int                              _index;  //  index of poll channel list
+    EventLoop*                       _eventLoop;
 };

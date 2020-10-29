@@ -10,9 +10,9 @@ void service()
 {
     InetAddress                                 address{9000};
     Acceptor                                    acceptor{address};
-    std::vector<std::unique_ptr<TcpConnection>> connectionVector;
+    std::vector<std::shared_ptr<TcpConnection>> connectionVector;
     char                                        buffer[2333];
-    acceptor.setOnAcception([&](std::unique_ptr<TcpConnection> connection) {
+    acceptor.setOnAcception([&](std::shared_ptr<TcpConnection> connection) {
         const auto& socket = connection->getSocket();
         LOG_INFO() << "accept fd" << socket.getFd() << "local address"
                    << socket.getLocalAddress().getIpString()
@@ -20,12 +20,12 @@ void service()
                    << socket.getPeerAddress().getIpString()
                    << socket.getPeerAddress().getPort();
         auto index = connectionVector.size();
-        connection->setOnReadyToRead([&, index](size_t size) {
-            LOG_INFO() << "ready to read " << size;
-            connectionVector[index]->recv(buffer, size);
-            connectionVector[index]->sendAsyn("echo back: ", 11);
-            connectionVector[index]->sendAsyn(buffer, size);
-        });
+        // connection->setOnReadyToRead([&, index](size_t size) {
+        //     LOG_INFO() << "ready to read " << size;
+        //     connectionVector[index]->recv(buffer, size);
+        //     connectionVector[index]->sendAsyn("echo back: ", 11);
+        //     connectionVector[index]->sendAsyn(buffer, size);
+        // });
         connection->setOnSent(
             [&, index](size_t size) { connectionVector[index]->close(); });
         connectionVector.push_back(std::move(connection));
@@ -37,7 +37,7 @@ void service()
     };
 
     EventLoopThread thread{threadEntry};
-    thread.startLoop();
+    thread.start();
     while (true)
     {
         CurrentThread::sleep(100);

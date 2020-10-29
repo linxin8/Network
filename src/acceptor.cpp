@@ -44,7 +44,7 @@ void Acceptor::onAcception()
                    << "port" << socket.getPeerAddress().getPort();
         if (_onAcception)
         {
-            _onAcception(std::make_unique<TcpConnection>(std::move(socket)));
+            _onAcception(std::make_shared<TcpConnection>(std::move(socket)));
         }
         else
         {

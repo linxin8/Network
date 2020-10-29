@@ -11,10 +11,7 @@ namespace CurrentThread
     extern thread_local std::string _name;
     extern thread_local std::string _tidString;
 
-    inline void setName(std::string name)
-    {
-        _name = std::move(name);
-    }
+    void                      setName(std::string name);
     inline const std::string& getName()
     {
         return _name;

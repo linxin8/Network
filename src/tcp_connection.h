@@ -4,7 +4,8 @@
 #include "tcp_buffer.h"
 #include "type.h"
 
-class TcpConnection : Noncopyable
+class TcpConnection : Noncopyable,
+                      public std::enable_shared_from_this<TcpConnection>
 {
 public:
     TcpConnection(Socket socket);
@@ -25,8 +26,8 @@ public:
     }
 
     // called when data is ready to read
-    // argument is the acctually size of data that can be read
-    void setOnReadyToRead(std::function<void(size_t)> onReadyToRead)
+    void setOnReadyToRead(
+        std::function<void(std::shared_ptr<TcpConnection>)> onReadyToRead)
     {
         _onReadyToRead = std::move(onReadyToRead);
     }
@@ -51,22 +52,57 @@ public:
         return _recvBuffer;
     }
 
+    void enableRead()
+    {
+        _channel.enableRead();
+    }
+
+    void enableWrite()
+    {
+        _channel.enableWrite();
+    }
+
+    void enableReadAndWrite()
+    {
+        _channel.enableReadAndWrite();
+    }
+
+    void disableRead()
+    {
+        _channel.disableRead();
+    }
+
+    void disableWrite()
+    {
+        _channel.isEnbleWrite();
+    }
+
+    void disableReadAndWrite()
+    {
+        _channel.disableReadAndWrite();
+    }
+
+    void setEventLoop(EventLoop* eventLoop)
+    {
+        _channel.setEventLoop(eventLoop);
+    }
+
     void close();
 
 private:
     void onRead();
     void onWrite();
-    void onError();
+    void onError(int errorNo);
     void onClose();
 
 private:
-    std::string                      _name;
-    Socket                           _socket;
-    Channel                          _channel;
-    TcpBuffer                        _sendBuffer;
-    TcpBuffer                        _recvBuffer;
-    std::function<void(size_t)>      _onReadyToRead;
-    std::function<void(size_t)>      _onSent;
-    std::function<void(int errorNo)> _onError;
-    std::function<void()>            _onClose;
+    std::string                                         _name;
+    Socket                                              _socket;
+    Channel                                             _channel;
+    TcpBuffer                                           _sendBuffer;
+    TcpBuffer                                           _recvBuffer;
+    std::function<void(std::shared_ptr<TcpConnection>)> _onReadyToRead;
+    std::function<void(size_t)>                         _onSent;
+    std::function<void(int errorNo)>                    _onError;
+    std::function<void()>                               _onClose;
 };

@@ -11,7 +11,7 @@ AsyncLogger::AsyncLogger() :
     _currentAgent{_pool.getAvaliableAgent()},
     _condition{},
     _isRunning{},
-    _thread{std::bind(&AsyncLogger::writingThreadFunc, this)},
+    _thread{std::bind(&AsyncLogger::writingThreadFunc, this), "log"},
     _isWaiting{},
     _additionBuffer{},
     _isUsingAdditionBuffer{}

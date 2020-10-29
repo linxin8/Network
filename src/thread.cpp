@@ -25,6 +25,12 @@ namespace CurrentThread
     }();
     thread_local std::string _tidString = [] { return std::to_string(_tid); }();
 
+    void setName(std::string name)
+    {
+        _name = std::move(name);
+        prctl(PR_SET_NAME, _name.c_str());
+    }
+
     void sleep(int64_t microseconds)
     {
         timespec      ts;
@@ -147,7 +153,6 @@ void* phtreadMain(void* data)
     {
         CurrentThread::setName(argument->_name);
     }
-    prctl(PR_SET_NAME, CurrentThread::getName().c_str());
     try
     {
         argument->_mainFunction();
@@ -155,7 +160,7 @@ void* phtreadMain(void* data)
     }
     catch (const Exception& ex)
     {
-        CurrentThread::setName("crashed");
+        // CurrentThread::setName("crashed");
         fprintf(stderr,
                 "exception caught in Thread %s\n",
                 CurrentThread::getName().c_str());
@@ -165,16 +170,16 @@ void* phtreadMain(void* data)
     }
     catch (const std::exception& ex)
     {
-        CurrentThread::setName("crashed");
+        // CurrentThread::setName("crashed");
         fprintf(stderr,
-                "exception caught in Thread %s\n",
+                "std exception caught in Thread %s\n",
                 CurrentThread::getName().c_str());
         fprintf(stderr, "reason: %s\n", ex.what());
         abort();
     }
     catch (...)
     {
-        CurrentThread::setName("crashed");
+        // CurrentThread::setName("crashed");
         fprintf(stderr,
                 "unknown exception caught in Thread %s\n",
                 CurrentThread::getName().c_str());

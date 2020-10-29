@@ -21,7 +21,6 @@ EventLoop::EventLoop() :
     _wakeUpChannel{_wakeUpPipe[0]}
 {
     CurrentThread::setEventLoop(const_cast<EventLoop&>(*this));
-    _epoll->add(&_wakeUpChannel);
     _wakeUpChannel.setOnRead([fd = _wakeUpPipe[0]] {
         uint64_t value;
         bool     error = -1 == ::read(fd, &value, sizeof(value));
@@ -30,6 +29,7 @@ EventLoop::EventLoop() :
             LOG_ERROR() << std::strerror(errno);
         }
     });
+    _wakeUpChannel.setEventLoop(this);
     _wakeUpChannel.enableRead();
 }
 

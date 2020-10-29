@@ -13,7 +13,8 @@ Channel::Channel(int fd) :
     _onWrite{},
     _onClose{},
     _onError{},
-    _index{-1}
+    _index{-1},
+    _eventLoop{nullptr}
 {
 }
 
@@ -24,7 +25,8 @@ Channel::Channel(Channel&& right) :
     _onWrite{std::move(right._onWrite)},
     _onClose{std::move(right._onClose)},
     _onError{std::move(right._onError)},
-    _index{-1}
+    _index{-1},
+    _eventLoop{nullptr}
 {
     if (right.isEnableRead() && right.isEnbleWrite())
     {
@@ -90,23 +92,22 @@ void Channel::handleEvent()
 
 void Channel::update()
 {
-    auto& eventLoop = CurrentThread::getEventLoop();
     if (isInEpoll())
     {
         if (_listenEvent == 0)
         {  // listen none event, just remove channel
-            eventLoop.removeChannel(this);
+            _eventLoop->removeChannel(this);
         }
         else
         {
-            eventLoop.modifyChannel(this);
+            _eventLoop->modifyChannel(this);
         }
     }
     else
     {
         if (_listenEvent != 0)
         {
-            eventLoop.addChannel(this);
+            _eventLoop->addChannel(this);
         }
     }
 }
@@ -152,4 +153,22 @@ bool Channel::isEnableRead() const
 bool Channel::isEnbleWrite() const
 {
     return _listenEvent & EPOLLOUT;
+}
+
+void Channel::onEventLoopChange()
+{
+    LOG_ASSERT(_eventLoop != &CurrentThread::getEventLoop());
+    if (_eventLoop != nullptr)
+    {
+        _eventLoop->removeChannel(this);
+    }
+    _eventLoop = &CurrentThread::getEventLoop();
+    _eventLoop->addChannel(this);
+}
+
+void Channel::setEventLoop(EventLoop* eventLoop)
+{
+    LOG_ASSERT(_eventLoop == nullptr);
+    LOG_ASSERT(eventLoop != nullptr);
+    _eventLoop = eventLoop;
 }

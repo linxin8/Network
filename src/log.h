@@ -299,6 +299,11 @@ public:
         __PRETTY_FUNCTION__,                                                   \
         CurrentThread::getStackTrace().c_str())
 
+inline void logAssertFailed()
+{
+    abort();
+}
+
 #define LOG_ASSERT(x)                                                          \
     {                                                                          \
         bool condition = static_cast<bool>(x);                                 \
@@ -306,6 +311,6 @@ public:
         {                                                                      \
             LOG_ERROR() << "assert failed \"" << #x << "\" :" << (x) << "\n"   \
                         << CurrentThread::getStackTrace();                     \
-            abort();                                                           \
+            logAssertFailed();                                                 \
         }                                                                      \
     }

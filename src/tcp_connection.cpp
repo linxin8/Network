@@ -13,10 +13,10 @@ TcpConnection::TcpConnection(Socket socket) :
     _onClose{}
 {
     _channel.setOnClose(std::bind(&TcpConnection::onClose, this));
-    _channel.setOnError(std::bind(&TcpConnection::onError, this));
+    _channel.setOnError(
+        std::bind(&TcpConnection::onError, this, std::placeholders::_1));
     _channel.setOnRead(std::bind(&TcpConnection::onRead, this));
     _channel.setOnWrite(std::bind(&TcpConnection::onWrite, this));
-    _channel.enableRead();
 }
 
 size_t TcpConnection::sendAsyn(const void* data, size_t size)
@@ -50,13 +50,18 @@ void TcpConnection::onRead()
     _recvBuffer.endDirectWrite(std::max(static_cast<ssize_t>(0), size));
     if (size == -1)
     {
-        onError();
+        onError(errno);
+    }
+    else if (size == 0)
+    {
+        // orderly shutdown of the connection
+        onClose();
     }
     else if (size > 0)
     {
         if (_onReadyToRead)
         {
-            _onReadyToRead(_recvBuffer.getSize());
+            _onReadyToRead(shared_from_this());
         }
     }
 }
@@ -67,7 +72,7 @@ void TcpConnection::onWrite()
                                           _sendBuffer.getContinousSize());
     if (size == -1)
     {
-        onError();
+        onError(errno);
     }
     else if (size > 0)
     {
@@ -84,9 +89,9 @@ void TcpConnection::onWrite()
     }
 }
 
-void TcpConnection::onError()
+void TcpConnection::onError(int errorNo)
 {
-    LOG_ERROR() << std::strerror(errno);
+    LOG_ERROR() << std::strerror(errorNo);
 }
 
 void TcpConnection::onClose()
@@ -101,6 +106,5 @@ void TcpConnection::onClose()
 
 void TcpConnection::close()
 {
-    _channel.disableReadAndWrite();
-    _socket.close();
+    onClose();
 }

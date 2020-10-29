@@ -24,7 +24,7 @@ EventLoopThread::~EventLoopThread()
     _thread.join();
 }
 
-void EventLoopThread::startLoop()
+void EventLoopThread::start()
 {
     LOG_ASSERT(!_thread.isStarted());
     _thread.start();

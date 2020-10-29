@@ -19,6 +19,7 @@ acceptor.cpp
 event_loop_thread.cpp
 tcp_connection.cpp
 tcp_server.cpp
+event_loop_thread_pool.cpp
 )
 
 target_link_libraries(net pthread systemd)

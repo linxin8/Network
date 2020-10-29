@@ -1,20 +1,30 @@
 #pragma once
 #include "acceptor.h"
-#include "event_loop_thread.h"
+#include "event_loop_thread_pool.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
 
 class TcpServer
 {
+    friend class TcpConnectionController;
+
 public:
     TcpServer(uint16_t port);
+
+    // set number of sub reactor
+    // default is 2
+    void setThreadNumber(int number)
+    {
+        _threadPool.setThreadNumber(number);
+    }
 
     void setOnNewConnection(std::function<void()> onNewConnection)
     {
         _onNewConnection = std::move(onNewConnection);
     }
-    void setOnReadyToRead(std::function<void(int)> onReadyToRead)
+    void setOnReadyToRead(
+        std::function<void(std::shared_ptr<TcpConnection>)> onReadyToRead)
     {
         _onReadyToRead = std::move(onReadyToRead);
     }
@@ -22,32 +32,17 @@ public:
 
     bool isListening() const;
 
-    void close(int number);
-
 private:
-    void onNewConnection(std::unique_ptr<TcpConnection> connection);
-    void onReadyToRead(int id);
+    void onNewConnection(std::shared_ptr<TcpConnection> connection);
+    void onReadyToRead(std::shared_ptr<TcpConnection>);
 
 private:
     std::function<void()>                                   _onNewConnection;
-    std::function<void(int)>                                _onReadyToRead;
+    std::function<void(std::shared_ptr<TcpConnection>)>     _onReadyToRead;
     Acceptor                                                _acceptor;
-    std::unordered_map<int, std::unique_ptr<TcpConnection>> _connectionMap;
+    std::unordered_map<int, std::shared_ptr<TcpConnection>> _connectionMap;
     int                                                     _connectionIndex;
     EventLoopThread                                         _acceptorThread;
-};
-
-class TcpConnectionController
-{
-public:
-    TcpConnectionController(int id, TcpServer* server) :
-        _id{id}, _server{server}
-    {
-    }
-    void send(std::vector<char> data) {}
-    void read();
-
-private:
-    int        _id;
-    TcpServer* _server;
+    EventLoopThreadPool                                     _threadPool;
+    EventLoop*                                              _eventLoop;
 };

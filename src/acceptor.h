@@ -12,7 +12,7 @@ public:
     ~Acceptor();
 
     void setOnAcception(
-        std::function<void(std::unique_ptr<TcpConnection>)> onNewConnection)
+        std::function<void(std::shared_ptr<TcpConnection>)> onNewConnection)
     {
         _onAcception = std::move(onNewConnection);
     }
@@ -23,12 +23,16 @@ public:
     {
         return _isListening;
     }
+    void setEventLoop(EventLoop* eventLoop)
+    {
+        _channel.setEventLoop(eventLoop);
+    }
 
 private:
     void onAcception();
 
 private:
-    std::function<void(std::unique_ptr<TcpConnection>)> _onAcception;
+    std::function<void(std::shared_ptr<TcpConnection>)> _onAcception;
     bool                                                _isListening;
     Socket                                              _socket;
     Channel                                             _channel;

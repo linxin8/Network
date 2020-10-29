@@ -193,11 +193,7 @@ ssize_t Socket::recvNonblocking(void* data, size_t maxSize)
     ssize_t size = ::recv(_fd, data, maxSize, MSG_DONTWAIT);
     if (size == -1)
     {
-        // if (errno != EAGAIN)
-        // {
         LOG_ERROR() << std::strerror(errno) << "fd" << _fd;
-        // }
-        return 0;
     }
     return size;
 }
