@@ -14,7 +14,7 @@ public:
 
     // set number of sub reactor
     // default is 2
-    void setThreadNumber(int number)
+    void setSubReactorThreadNumber(int number)
     {
         _threadPool.setThreadNumber(number);
     }

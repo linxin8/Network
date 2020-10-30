@@ -5,9 +5,8 @@
 
 TEST(TcpServer, resovle)
 {
-    EventLoop loop;
     TcpServer server{9000};
-    server.setThreadNumber(2);
+    server.setSubReactorThreadNumber(2);
     server.setOnReadyToRead([](std::shared_ptr<TcpConnection> connection) {
         char   buffer[100] = "echo back: ";
         size_t size        = connection->recv(buffer + strlen(buffer), 100);
@@ -21,7 +20,10 @@ TEST(TcpServer, resovle)
         connection->sendAsyn(buffer, strlen(buffer) + size);
     });
     server.listen();
-    loop.start();
+    while (true)
+    {
+        CurrentThread::sleep(1000);
+    }
 }
 
 int main(int argc, char* argv[])
