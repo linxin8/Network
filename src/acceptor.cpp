@@ -30,6 +30,7 @@ void Acceptor::listen()
     LOG_ASSERT(!_isListening);
     _socket.listen();
     _isListening = true;
+    _channel.setEventLoop(&CurrentThread::getEventLoop());
     _channel.enableRead();
     LOG_INFO() << "listen" << _socket.getLocalAddress().getIpString() << "port"
                << _socket.getLocalAddress().getPort();

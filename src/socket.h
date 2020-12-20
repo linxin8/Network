@@ -53,6 +53,9 @@ public:
     bool                    bind(const InetAddress& address);
     std::pair<bool, Socket> accept();
 
+    // return if connection is successful
+    bool connect(InetAddress address);
+
 private:
     int _fd;
 };

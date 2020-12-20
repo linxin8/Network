@@ -9,8 +9,7 @@ TcpServer::TcpServer(uint16_t port) :
     _connectionMap{},
     _connectionIndex{0},
     _acceptorThread{},
-    _threadPool{},
-    _eventLoop{&CurrentThread::getEventLoop()}
+    _threadPool{}
 {
     _acceptor.setOnAcception([this](std::shared_ptr<TcpConnection> connection) {
         (this->*&TcpServer::onNewConnection)(std::move(connection));
@@ -18,7 +17,7 @@ TcpServer::TcpServer(uint16_t port) :
     _acceptorThread.start();
     _acceptorThread.exec([] { CurrentThread::setName("acceptor"); });
     _threadPool.setThreadNumber(2);
-    _acceptor.setEventLoop(_acceptorThread.getEventLoop());
+    // _acceptor.setEventLoop(_acceptorThread.getEventLoop());
 }
 
 void TcpServer::listen()

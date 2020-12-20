@@ -7,8 +7,6 @@
 
 class TcpServer
 {
-    friend class TcpConnectionController;
-
 public:
     TcpServer(uint16_t port);
 
@@ -44,5 +42,4 @@ private:
     int                                                     _connectionIndex;
     EventLoopThread                                         _acceptorThread;
     EventLoopThreadPool                                     _threadPool;
-    EventLoop*                                              _eventLoop;
 };

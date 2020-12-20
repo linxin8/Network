@@ -197,3 +197,19 @@ ssize_t Socket::recvNonblocking(void* data, size_t maxSize)
     }
     return size;
 }
+
+bool Socket::connect(InetAddress address)
+{
+    int no = ::connect(
+        _fd, &address.getSocketAddress(), address.getSocketAddressSize());
+    if (no != 0)
+    {
+        int err = errno;
+        if (err != EINPROGRESS)
+        {  // EINPROGRESS is not error for nonblock socket
+            LOG_ERROR() << std::strerror(err);
+            return false;
+        }
+    }
+    return true;
+}
