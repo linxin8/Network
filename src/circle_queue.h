@@ -479,3 +479,192 @@ private:
     size_t _end;
     size_t _length;
 };
+
+// automatically resize ensure capciaty is enough to store data
+class DynamicCircleByteStreamQueue
+{
+public:
+    DynamicCircleByteStreamQueue(size_t size = 32) :
+        _size{size}, _data{new char[_size]}, _start{0}, _end{0}, _length{0}
+    {
+    }
+
+    ~DynamicCircleByteStreamQueue()
+    {
+        if (_data != nullptr)
+        {
+            delete[] _data;
+        }
+    }
+
+    DynamicCircleByteStreamQueue(DynamicCircleByteStreamQueue&& right) :
+        _size{right._size},
+        _start{right._start},
+        _end{right._end},
+        _length{right._length}
+    {
+        _data       = right._data;
+        right._data = nullptr;
+    }
+
+    // test if is empty
+    bool isEmpty() const
+    {
+        return _length == 0;
+    }
+
+    // get the address of first element
+    const char* getFirstAddress() const
+    {
+        return &_data[_start];
+    }
+
+    // get the address of circle buffer
+    const char* getRowData() const
+    {
+        return &_data[0];
+    }
+
+    template <typename T>
+    void push(const T& x)
+    {
+        static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
+        static_assert(!std::is_pointer_v<T>);
+        push(&x, sizeof(T));
+    }
+
+    void push(const void* data, size_t size)
+    {
+        reservePushSize(size);
+        size_t toEndSize     = _size - _end;
+        size_t firstCopySize = min(size, toEndSize);
+        std::memcpy(&_data[_end], data, firstCopySize);
+        if (size > firstCopySize)
+        {  // need copy from head
+            std::memcpy(&_data[0],
+                        static_cast<const char*>(data) + firstCopySize,
+                        size - firstCopySize);
+        }
+        _end = next(_end, size);
+        _length += size;
+    }
+
+    // return continous size of data can be read from first element
+    size_t getContinousSize() const
+    {
+        if (_start > _end)
+        {
+            return _size - _start;
+        }
+        return _end - _start;
+    }
+
+    // remove continous size of data can be read from first element
+    void popContinouData()
+    {
+        if (_start <= _end)
+        {
+            _start  = 0;
+            _end    = 0;
+            _length = 0;
+        }
+        else
+        {
+            _start  = 0;
+            _length = _end;
+        }
+    }
+
+    // pop fixed size data
+    void popN(int popSize)
+    {
+        assert(!isEmpty());
+        assert(_length >= popSize);
+        _start = next(_start, popSize);
+        _length -= popSize;
+    }
+
+    // reutrn the size of element stored
+    size_t getSize() const
+    {
+        return _length;
+    }
+
+    // {wirting address, max size}
+    // used for direct wirte for avoid copying buffer data
+    // must call endDirectWrite once wirting is finished
+    std::pair<char*, size_t> beginDirectWrite()
+    {
+        if (_start > _end)
+        {
+            return {_data + _end, _start - _end};
+        }
+        return {_data + _end, _size - _end};
+    }
+
+    // used for direct wirte for avoid copying buffer data
+    // must be called after beginDirectWrite
+    // writtenSize is size of data that have been writed
+    void endDirectWrite(size_t writtenSize)
+    {
+        _end = next(_end, writtenSize);
+        _length += writtenSize;
+        assert(_length <= _size);
+    }
+
+    void reservePushSize(size_t size)
+    {
+        size_t newSize = size + _length;
+        if (newSize >= _size)
+        {
+            // need resize
+            resetCapcity(max(newSize, _size * 2));
+        }
+    }
+
+private:
+    // new size must not less than current size
+    // all old data are retained
+    void resetCapcity(size_t newSize)
+    {
+        assert(_length <= newSize);
+        auto newData = new char[newSize];
+        auto csize   = getContinousSize();
+        memcpy(newData, getFirstAddress(), getContinousSize());
+        if (_end < _start)
+        {
+            memcpy(newData + csize, getRowData(), getSize() - csize);
+        }
+        delete[] _data;
+        _data  = newData;
+        _start = 0;
+        _end   = next(_start, _length);
+        _size  = newSize;
+    }
+
+    size_t next(size_t x, size_t n) const
+    {
+        size_t ret = x + n;
+        if (ret >= _size)
+        {
+            ret -= _size;
+        }
+        return ret;
+    }
+
+    size_t min(size_t a, size_t b)
+    {
+        return a < b ? a : b;
+    }
+    size_t max(size_t a, size_t b)
+    {
+        return a > b ? a : b;
+    }
+
+private:
+    size_t _size;
+    char*  _data;
+    size_t _start;
+    size_t _end;
+    size_t _length;
+};
