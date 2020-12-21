@@ -29,6 +29,7 @@ namespace CurrentThread
         return _tid == getpid();
     }
     void sleep(int64_t microseconds);
+    void sleeps(int64_t seconds);
     // @demangle: whether use demangle to deformat function name
     std::string getStackTrace(int maxFrame = 10, bool demangle = true);
 }  // namespace CurrentThread

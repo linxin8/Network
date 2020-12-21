@@ -40,6 +40,15 @@ namespace CurrentThread
             static_cast<long>(microseconds % microsecondsPerSecond * 1000);
         nanosleep(&ts, NULL);
     }
+
+    void sleeps(int64_t seconds)
+    {
+        timespec      ts;
+        constexpr int microsecondsPerSecond = 1000 * 1000;
+        ts.tv_sec                           = seconds;
+        ts.tv_nsec                          = 0;
+        nanosleep(&ts, NULL);
+    }
     std::string getStackTrace(int maxFrame, bool demangle)
     {
         std::string result;
