@@ -22,7 +22,7 @@ public:
     }
 
     // block until all data is writen on send buffer
-    void send(const std::string& data);
+    void send(std::string data);
     // read all buffer
     std::string read();
 
@@ -38,9 +38,9 @@ private:
     std::function<void()>          _onReadyToRead;
     std::function<void()>          _onError;
     std::function<void()>          _onSend;
-    std::shared_ptr<TcpConnection> _connection;
     std::string                    _recvBuffer;
     std::string                    _sendBuffer;
     EventLoopThread                _thread;
     bool                           _isConnected;
+    std::shared_ptr<TcpConnection> _connection;
 };

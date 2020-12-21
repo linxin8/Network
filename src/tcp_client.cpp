@@ -7,11 +7,11 @@ TcpClient::TcpClient() :
     _onReadyToRead{},
     _onError{},
     _onSend{},
-    _connection{},
     _recvBuffer{},
     _sendBuffer{},
     _thread{[] {}, "client network"},
-    _isConnected{}
+    _isConnected{},
+    _connection{}
 {
     _thread.start();
 }
@@ -84,10 +84,13 @@ void TcpClient::onRead()
 {
     char   buffer[2048];
     size_t size = 1;
-    while (size != 0)
     {
-        size = _connection->recv(buffer, 2048);
-        _recvBuffer.append(buffer, size);
+        // std::lock_guard<std::mutex> guard{_readWriteMutex};
+        while (size != 0)
+        {
+            size = _connection->recv(buffer, 2048);
+            _recvBuffer.append(buffer, size);
+        }
     }
     if (_onReadyToRead)
     {
@@ -95,30 +98,39 @@ void TcpClient::onRead()
     }
 }
 
-void TcpClient::send(const std::string& data)
+void TcpClient::send(const std::string data)
 {
     LOG_ASSERT(_isConnected);
     if (data.empty())
     {
         return;
     }
-
-    int index = 0;
-    while (true)
-    {
-        index += _connection->sendAsyn(data.c_str() + index, data.size());
-        if (index == data.size())
-        {
-            break;
-        }
-        std::this_thread::yield();
-    }
+    _thread.exec([con = _connection, d = std::move(data)] {
+        con->sendAsyn(d.c_str(), d.size());
+    });
 }
 
 std::string TcpClient::read()
 {
     LOG_ASSERT(_isConnected);
-    return std::move(_recvBuffer);
+
+    while (_recvBuffer.size() == 0)
+    {
+        std::this_thread::yield();
+    }
+
+    std::string data;
+    bool        ok = false;
+    _thread.exec([&buffer = _recvBuffer, &data, &ok] {
+        data = std::move(buffer);
+        ok   = true;
+    });
+
+    while (!ok)
+    {
+        std::this_thread::yield();
+    }
+    return std::move(data);
 }
 
 void TcpClient::disconnect()

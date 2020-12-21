@@ -13,21 +13,23 @@ void serviceV2()
 {
     TcpServer server{port};
     server.setSubReactorThreadNumber(2);
-    server.setOnReadyToRead([](std::shared_ptr<TcpConnection> connection) {
+    std::vector<std::shared_ptr<TcpConnection>> cons;
+    server.setOnReadyToRead([&](std::shared_ptr<TcpConnection> connection) {
         std::string data = "echo back info: ";
         char        buffer[100];
         size_t      size = connection->recv(buffer, 100);
         data.append(buffer, size);
         std::weak_ptr<TcpConnection> weakConnection = connection;
-        connection->setOnSent([weakConnection](size_t) {
-            if (auto con = weakConnection.lock())
-            {
-                LOG_INFO() << "send done and close";
-                con->close();
-            }
-        });
+        // connection->setOnSent([weakConnection](size_t) {
+        //     if (auto con = weakConnection.lock())
+        //     {
+        //         LOG_INFO() << "send done and close";
+        //         con->close();
+        //     }
+        // });
         LOG_INFO() << "echo back: " << data;
         connection->sendAsyn(data.c_str(), data.size());
+        cons.push_back(connection);  // avoid disconnecting
     });
     server.listen();
     while (true)
