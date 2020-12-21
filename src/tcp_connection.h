@@ -3,7 +3,11 @@
 #include "socket.h"
 #include "tcp_buffer.h"
 #include "type.h"
+#include <mutex>
 
+// must used as shared_ptr
+// must set eventloop before use
+// read is not enabled by default
 class TcpConnection : Noncopyable,
                       public std::enable_shared_from_this<TcpConnection>
 {
@@ -12,7 +16,7 @@ public:
 
 public:
     // send size-fixed data asynchronously
-    size_t sendAsyn(const void* data, size_t size);
+    void sendAsyn(const void* data, size_t size);
 
     // received the data with the maximun size
     // return acctually size of data received
@@ -105,4 +109,6 @@ private:
     std::function<void(size_t)>                         _onSent;
     std::function<void(int errorNo)>                    _onError;
     std::function<void()>                               _onClose;
+    std::mutex                                          _sendBufferMutex;
+    std::mutex                                          _recvBUfferMutex;
 };

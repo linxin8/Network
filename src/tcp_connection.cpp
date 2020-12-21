@@ -19,13 +19,16 @@ TcpConnection::TcpConnection(Socket socket) :
     _channel.setOnWrite(std::bind(&TcpConnection::onWrite, this));
 }
 
-size_t TcpConnection::sendAsyn(const void* data, size_t size)
+void TcpConnection::sendAsyn(const void* data, size_t size)
 {
-    if (size > 0 && !_channel.isEnbleWrite())
+    if (size != 0)
     {
-        _channel.enableWrite();
+        if (!_channel.isEnbleWrite())
+        {
+            _channel.enableWrite();
+        }
+        _sendBuffer.append(data, size);
     }
-    return _sendBuffer.append(data, size);
 }
 
 size_t TcpConnection::recv(void* data, size_t maxSize)
@@ -96,12 +99,12 @@ void TcpConnection::onError(int errorNo)
 
 void TcpConnection::onClose()
 {
-    _channel.disableReadAndWrite();
     if (_onClose)
     {
         _onClose();
     }
-    // not close fd
+    _channel.disableReadAndWrite();
+    _socket.close();
 }
 
 void TcpConnection::close()
