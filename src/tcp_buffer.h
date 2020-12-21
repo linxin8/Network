@@ -17,13 +17,7 @@ private:
     static inline constexpr size_t _smallBufferSize = 8 * 1024;         // 8k
     static inline constexpr size_t _largeBufferSize = 2 * 1024 * 1024;  // 2M
 public:
-    TcpBuffer() : _queue{_smallBufferSize} {}
-
-    // get the size of data can be appended
-    size_t getAvailableSize() const
-    {
-        return _largeBufferSize - _queue.getSize();
-    }
+    TcpBuffer(size_t size = _smallBufferSize) : _queue{size} {}
 
     // return continous size of data can be read from first element
     size_t getContinousSize() const
@@ -34,13 +28,6 @@ public:
     // get the address of first element
     // may get invalid after any element removed or inserted
     const char* getFirstAddress() const
-    {
-        return _queue.getFirstAddress();
-    }
-
-    // get the address of first element
-    // may get invalid after any element removed or inserted
-    char* getFirstAddress()
     {
         return _queue.getFirstAddress();
     }
@@ -112,24 +99,12 @@ public:
     {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T>);
         static_assert(!std::is_pointer_v<T>);
-        LOG_ASSERT(getAvailableSize() >= sizeof(T));
         append(&x, sizeof(T));
     }
 
-    // append data stream with maximun size
-    // may only append partial data
-    // reutrn actually size appended
-    size_t append(const void* data, size_t maxSize)
+    void append(const void* data, size_t size)
     {
-        if (_queue.getAvailableSize() < maxSize)
-        {
-            if (_queue.getCapacity() == _smallBufferSize)
-            {
-                // use large buffer instead
-                _queue.resetCapcity(_largeBufferSize);
-            }
-        }
-        return _queue.push(data, maxSize);
+        _queue.push(data, size);
     }
 
     // {wirting address, max size}
@@ -146,19 +121,8 @@ public:
     void endDirectWrite(size_t writtenSize)
     {
         _queue.endDirectWrite(writtenSize);
-        if (_queue.isFull() && isSmallBuffer())
-        {
-            // use large buffer instead
-            _queue.resetCapcity(_largeBufferSize);
-        }
     }
 
 private:
-    bool isSmallBuffer() const
-    {
-        return _queue.getSize() == _smallBufferSize;
-    }
-
-private:
-    CircleByteStreamQueue _queue;
+    DynamicCircleByteStreamQueue _queue;
 };
