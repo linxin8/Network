@@ -20,7 +20,10 @@ EventLoopThread::EventLoopThread(std::function<void()> initFunc,
 
 EventLoopThread::~EventLoopThread()
 {
-    CurrentThread::getEventLoop().quit();
+    if (_eventLoop != nullptr)
+    {
+        _eventLoop->quit();
+    }
     _thread.join();
 }
 
