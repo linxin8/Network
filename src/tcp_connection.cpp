@@ -31,6 +31,22 @@ void TcpConnection::sendAsyn(const void* data, size_t size)
     }
 }
 
+std::string TcpConnection::recvAll()
+{
+    char        buffer[1024];
+    std::string data;
+    while (true)
+    {
+        auto n = recv(buffer, 1024);
+        if (n == 0)
+        {
+            break;
+        }
+        data.append(buffer, n);
+    }
+    return std::move(data);
+}
+
 size_t TcpConnection::recv(void* data, size_t maxSize)
 {
     size_t copyedSize = 0;

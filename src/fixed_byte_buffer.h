@@ -15,7 +15,7 @@
 // appended. and it step into overflow state that cannot append any data
 // until clear function is called.
 template <size_t N>
-class FixedByteBuffer : Noncopyable
+class FixedByteBuffer
 {
 public:
     // total size

@@ -1,152 +1,12 @@
 #pragma once
-#include "circle_queue.h"
-#include "fixed_byte_buffer.h"
+#include "log_buffer.h"
 #include "thread.h"
 #include "time.h"
-#include <bitset>
 #include <cassert>
 #include <condition_variable>
 #include <exception>
-#include <memory>
 #include <mutex>
-#include <queue>
 #include <vector>
-
-class LoggerBuffer : Noncopyable
-{
-public:
-    LoggerBuffer()  = default;
-    ~LoggerBuffer() = default;
-    void clear()
-    {
-        _buffer.clear();
-    }
-    size_t getAvaliableSize()
-    {
-        return _buffer.availableSize();
-    }
-    template <typename T>
-    LoggerBuffer& operator<<(const T& x)
-    {
-        _buffer.append(x);
-        return *this;
-    }
-
-    void append(const char* data, size_t size)
-    {
-        _buffer.append(data, size);
-    }
-
-    const void* getRowdata() const
-    {
-        return _buffer.rowData();
-    }
-
-    // get size of buffer inserted
-    size_t getSize() const
-    {
-        return _buffer.size();
-    }
-
-    bool isOverFlow() const
-    {
-        return _buffer.isOverflow();
-    }
-
-private:
-    FixedByteBuffer<4096> _buffer;
-};
-
-template <size_t N>
-class LogBufferPool : Noncopyable
-{
-public:
-    // automatically give back buffer on destruction
-    class BufferAgent
-    {
-    public:
-        BufferAgent(LogBufferPool<N>* pool, LoggerBuffer* buffer) :
-            _pool{pool}, _buffer{buffer}
-        {
-        }
-        BufferAgent(BufferAgent&& agent) :
-            _pool{agent._pool}, _buffer{agent._buffer}
-        {
-            agent._pool   = nullptr;
-            agent._buffer = nullptr;
-        }
-        BufferAgent(const BufferAgent& agent) = delete;
-        BufferAgent& operator                 =(BufferAgent&& agent)
-        {
-            _pool         = agent._pool;
-            _buffer       = agent._buffer;
-            agent._pool   = nullptr;
-            agent._buffer = nullptr;
-            return *this;
-        }
-        BufferAgent& operator=(const BufferAgent& agent) = delete;
-        ~BufferAgent()
-        {
-            if (_pool != nullptr)
-            {
-                assert(_buffer != nullptr);
-                _buffer->clear();
-                _pool->giveBack(*_buffer);
-            }
-        };
-        LoggerBuffer& getBuffer()
-        {
-            return *_buffer;
-        }
-        bool size() const
-        {
-            return _pool->getSize();
-        }
-
-    private:
-        LogBufferPool* _pool;
-        LoggerBuffer*  _buffer;
-    };
-
-    LogBufferPool()
-    {
-        // init avaliable buffer index
-        for (int i = 0; i < N; i++)
-        {
-            _queue.push(i);
-        }
-    }
-    // get avilable buffer
-    BufferAgent getAvaliableAgent()
-    {
-        assert(
-            !_queue.isEmpty());  // queue is empty, cannnot take any avaliable
-        return {this, &_buffer[_queue.take()]};
-    }
-
-    bool isEmpty() const
-    {
-        return _queue.isEmpty();
-    }
-
-    size_t getSize() const
-    {
-        return _queue.getSize();
-    }
-
-private:
-    // give back buffer, it will be avaliable
-    void giveBack(const LoggerBuffer& buffer)
-    {
-        int index = &buffer - _buffer;
-        assert(0 <= index && index < N);
-        _queue.push(index);
-    }
-
-private:
-    LoggerBuffer        _buffer[N];
-    CircleQueue<int, N> _queue;
-};
 
 class AsyncLogger : Noncopyable
 {
@@ -161,7 +21,7 @@ public:
     }
 
     // append log, if logger is stopped, do nothing
-    void append(const char* data, size_t size);
+    void append(LogBuffer buffer);
     void start()
     {
         _isRunning = true;
@@ -181,22 +41,15 @@ private:
     void writingThreadFunc();
 
 private:
-    constexpr static size_t fixedSize = 2048;
-    using LogBufferPool_t             = LogBufferPool<fixedSize>;
-    std::string                                          _logName;
-    int                                                  _flushInterval;
-    LogBufferPool_t                                      _pool;
-    CircleQueue<LogBufferPool_t::BufferAgent, fixedSize> _agentToWrited;
-    // std::queue<LogBufferPool_t::BufferAgent> _agentToWrited;
-    LogBufferPool_t::BufferAgent _currentAgent;
-    std::mutex                   _mutex;
+    std::string _logName;
+    int         _flushInterval;
+    std::mutex  _mutex;
     // condition that data is ready to write
-    std::condition_variable                    _condition;
-    std::atomic_bool                           _isRunning;
-    Thread                                     _thread;
-    std::atomic_bool                           _isWaiting;
-    std::vector<std::unique_ptr<LoggerBuffer>> _additionBuffer;
-    std::atomic_bool                           _isUsingAdditionBuffer;
+    std::condition_variable _condition;
+    std::atomic_bool        _isRunning;
+    Thread                  _thread;
+    std::atomic_bool        _isWaiting;
+    std::vector<LogBuffer>  _writeVector;
 };
 
 enum class LoggerLevel
@@ -220,7 +73,7 @@ public:
     Logger(const char* formatted_prefix_file_line,
            const char* function,
            const char* stackTrace = nullptr) :
-        _buffer{}, _stackTrace{stackTrace}
+        _buffer{LogBufferPool::getBuffer(64)}, _stackTrace{stackTrace}
     {
         static bool logStarted = false;
         if (!logStarted)
@@ -228,33 +81,41 @@ public:
             _logger.start();
             logStarted = true;
         }
+        char str[256];
         auto time = TimePoint::now();
-        _buffer << time.hours() << ':' << time.minute() << ':' << time.second()
-                << ' ' << CurrentThread::getName().c_str() << ' '
-                << formatted_prefix_file_line << function;
+        int  n    = std::snprintf(str,
+                              256,
+                              "%d:%d:%d %s %s %s",
+                              time.hours(),
+                              time.minute(),
+                              time.second(),
+                              CurrentThread::getName().c_str(),
+                              formatted_prefix_file_line,
+                              function);
+        _buffer.append(str, n);
     }
     ~Logger()
     {
-        _buffer << '\n';
+        _buffer.append('\n');
         if (_stackTrace != nullptr)
         {
-            _buffer << _stackTrace << '\n';
+            _buffer.append(_stackTrace);
+            _buffer.append('\n');
         }
-        assert(!_buffer.isOverFlow());
-        _logger.append(static_cast<const char*>(_buffer.getRowdata()),
-                       _buffer.getSize());
+        _logger.append(std::move(_buffer));
     }
 
     template <typename T>
     Logger<true>& operator<<(const T& data)
     {
-        _buffer << ' ' << data;
+        _buffer.append(' ');
+        _buffer.append(data);
         return *this;
     }
 
 private:
     static inline AsyncLogger _logger;
-    LoggerBuffer              _buffer;
+    LogBuffer                 _buffer;
     const char*               _stackTrace;
 };
 

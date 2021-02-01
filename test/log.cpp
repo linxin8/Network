@@ -7,44 +7,45 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-TEST(FixedByteBuffer, append)
-{
-    FixedByteBuffer<200> buffer;
-    buffer.append(2.f);
-    buffer.append('\0');
-    GTEST_ASSERT_EQ(2.f, std::atof(buffer.toCString()));
-    buffer.clear();
-    buffer.append(2.9);
-    buffer.append('\0');
-    GTEST_ASSERT_EQ(2.9, std::atof(buffer.toCString()));
-    buffer.clear();
-    buffer.append(2);
-    buffer.append('\0');
-    GTEST_ASSERT_EQ(2, std::atoi(buffer.toCString()));
-    buffer.clear();
-    buffer.append(231123l);
-    buffer.append('\0');
-    GTEST_ASSERT_EQ(231123l, std::atol(buffer.toCString()));
-    buffer.clear();
-    buffer.append(231123231123ll);
-    buffer.append('\0');
-    GTEST_ASSERT_EQ(231123231123ll, std::atoll(buffer.toCString()));
-    for (int i = 0; i < 100; i++)
-    {
-        buffer.append(i);
-    }
-    GTEST_ASSERT_EQ(buffer.isOverflow(), true);
-    buffer.clear();
-    GTEST_ASSERT_EQ(buffer.isOverflow(), false);
-}
+// TEST(FixedByteBuffer, append)
+// {
+//     FixedByteBuffer<200> buffer;
+//     buffer.append(2.f);
+//     buffer.append('\0');
+//     GTEST_ASSERT_EQ(2.f, std::atof(buffer.toCString()));
+//     buffer.clear();
+//     buffer.append(2.9);
+//     buffer.append('\0');
+//     GTEST_ASSERT_EQ(2.9, std::atof(buffer.toCString()));
+//     buffer.clear();
+//     buffer.append(2);
+//     buffer.append('\0');
+//     GTEST_ASSERT_EQ(2, std::atoi(buffer.toCString()));
+//     buffer.clear();
+//     buffer.append(231123l);
+//     buffer.append('\0');
+//     GTEST_ASSERT_EQ(231123l, std::atol(buffer.toCString()));
+//     buffer.clear();
+//     buffer.append(231123231123ll);
+//     buffer.append('\0');
+//     GTEST_ASSERT_EQ(231123231123ll, std::atoll(buffer.toCString()));
+//     for (int i = 0; i < 100; i++)
+//     {
+//         buffer.append(i);
+//     }
+//     GTEST_ASSERT_EQ(buffer.isOverflow(), true);
+//     buffer.clear();
+//     GTEST_ASSERT_EQ(buffer.isOverflow(), false);
+// }
 
-TEST(LoggerBuffer, op)
-{
-    LoggerBuffer buffer;
-    const char   str[20] = "abcd";
-    buffer << "123"
-           << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
-}
+// TEST(Logger, op)
+// {
+//     Logger     logger;
+//     const char str[20] = "abcd";
+//     logger << "123"
+//            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4
+//            << 111ull;
+// }
 
 void logFun(AsyncLogger& asyn, bool& ok)
 {
@@ -56,10 +57,15 @@ void logFun(AsyncLogger& asyn, bool& ok)
         // data[size]  = '\n';
         // asyn.append(data, size);
         // std::this_thread::sleep_for(std::chrono::microseconds{1});
-        asyn.append("12345678910!@"
-                    "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
-                    "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111#$%^&",
-                    200);
+        LogBuffer buffer = LogBufferPool::getBuffer(23);
+        buffer.append(
+            "12345678910!@"
+            "1111111111111111111111111111111111111111111111111111111111"
+            "1111111111111111111111111111111111111111"
+            "1111111111111111111111111111111111111111111111111111111111"
+            "11111111111111111111111111111111#$%^&",
+            200);
+        asyn.append(std::move(buffer));
         // std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
     printf("end \n");
@@ -72,7 +78,8 @@ void logFun(AsyncLogger& asyn, bool& ok)
 //     LoggerBuffer buffer;
 //     const char   str[20] = "abcd";
 //     buffer << "123"
-//            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 << 111ull;
+//            << "345" << 789 << str << '\0' << ' ' << "!@#$" << 2.3f << 2.4 <<
+//            111ull;
 //     AsyncLogger asyn;
 //     asyn.start();
 //     bool ok      = true;
@@ -81,10 +88,13 @@ void logFun(AsyncLogger& asyn, bool& ok)
 //         printf("set ok false\n");
 //         ok = false;
 //     });
-//     auto future1 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-//     auto future2 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-//     auto future3 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
-//     auto future4 = std::async(std::launch::async, std::bind(&logFun, std::ref(asyn), std::ref(ok)));
+//     auto future1 = std::async(std::launch::async, std::bind(&logFun,
+//     std::ref(asyn), std::ref(ok))); auto future2 =
+//     std::async(std::launch::async, std::bind(&logFun, std::ref(asyn),
+//     std::ref(ok))); auto future3 = std::async(std::launch::async,
+//     std::bind(&logFun, std::ref(asyn), std::ref(ok))); auto future4 =
+//     std::async(std::launch::async, std::bind(&logFun, std::ref(asyn),
+//     std::ref(ok)));
 //     // while (ok)
 //     // {
 //     //     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -93,7 +103,7 @@ void logFun(AsyncLogger& asyn, bool& ok)
 
 TEST(AsynLoggerBuffer, log)
 {
-    for (int i = 0; i < 100000; i++)
+    for (int i = 0; i < 100; i++)
     {
         LOG_TRACE() << i;
         LOG_DEBUG() << i;
@@ -102,8 +112,29 @@ TEST(AsynLoggerBuffer, log)
     }
     LOG_DEBUG() << "debug log test";
     std::cout << "debug log test\n";
-    // constexpr auto x = _LOG_FORMAT("debug", __FILE__, __PRETTY_FUNCTION__, _STRINGIZE(__LINE__));
-    // constexpr auto x = _LOG_FORMAT("debug", __builtin_FILE(), __builtin_FUNCTION(), _STRINGIZE(__builtin_LINE()));
+    // while (true) {}
+    // constexpr auto x = _LOG_FORMAT("debug", __FILE__, __PRETTY_FUNCTION__,
+    // _STRINGIZE(__LINE__)); constexpr auto x = _LOG_FORMAT("debug",
+    // __builtin_FILE(), __builtin_FUNCTION(), _STRINGIZE(__builtin_LINE()));
+
+    // std::cout << x;
+    // std::cout << __func__;
+    // std::cout << __PRETTY_FUNCTION__;
+}
+
+TEST(AsynLoggerBuffer, bigLog)
+{
+    LogBuffer buffer = LogBufferPool::getBuffer();
+    for (int i = 0; i < 100000; i++)
+    {
+        buffer.append(" ");
+        buffer.append(i);
+    }
+    LOG_DEBUG() << (char*)buffer.rawData();
+    // while (true) {}
+    // constexpr auto x = _LOG_FORMAT("debug", __FILE__, __PRETTY_FUNCTION__,
+    // _STRINGIZE(__LINE__)); constexpr auto x = _LOG_FORMAT("debug",
+    // __builtin_FILE(), __builtin_FUNCTION(), _STRINGIZE(__builtin_LINE()));
 
     // std::cout << x;
     // std::cout << __func__;
