@@ -1,0 +1,63 @@
+#pragma once
+#include "../../../src/log.h"
+#include <map>
+#include <string>
+
+class Message
+{
+public:
+    Message()          = default;
+    Message(Message&&) = default;
+    Message(std::map<std::string, std::string> map) : _map{std::move(map)} {}
+
+    // insert or update if not exist
+    void set(const std::string& key, const std::string& value)
+    {
+        _map.emplace(key, value);
+    }
+
+    // assert key exist and  get value of key
+    std::string get(const std::string& key)
+    {
+        LOG_ASSERT(contains(key));
+        return _map[key];
+    }
+
+    // check if key exist
+    bool contains(const std::string& key) const
+    {
+        return _map.contains(key);
+    }
+
+    //  get value of key, insert empty string if key not exist
+    std::string& operator[](const std::string& str)
+    {
+        return _map[str];
+    }
+
+    std::string toString();
+
+    std::string toReadableString();
+    // check if any message is contained
+    static bool containsMessage(const std::string& string)
+    {
+        return getNextMessageLength(string) > 0;
+    }
+
+    // get one message from string, not modify string
+    static Message fromString(const std::string& string);
+
+    // get one message from string, extract string
+    static Message extractString(std::string& string);
+
+    const std::map<std::string, std::string>& rawData() const
+    {
+        return _map;
+    }
+
+private:
+    static int getNextMessageLength(const std::string& string);
+
+private:
+    std::map<std::string, std::string> _map;
+};

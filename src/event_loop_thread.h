@@ -19,9 +19,19 @@ public:
         _initFunc = std::move(initFunc);
     }
 
+    // if caller and eventloop in the same thread, exec immediately
+    // ohterwise append to event queue
     void exec(std::function<void()> function)
     {
-        _eventLoop->exec(std::move(function));
+        if (CurrentThread::getTid() == _thread.getTid())
+        {
+            // in the same thread, exec immediately
+            function();
+        }
+        else
+        {
+            _eventLoop->exec(std::move(function));
+        }
     }
 
     void insertConnection(std::shared_ptr<TcpConnection> connection)

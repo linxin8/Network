@@ -114,10 +114,10 @@ std::string TcpClient::read()
 {
     LOG_ASSERT(_isConnected);
 
-    while (_recvBuffer.size() == 0)
-    {
-        std::this_thread::yield();
-    }
+    // while (_recvBuffer.size() == 0)
+    // {
+    //     std::this_thread::yield();
+    // }
 
     std::string data;
     bool        ok = false;

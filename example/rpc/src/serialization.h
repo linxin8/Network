@@ -16,6 +16,17 @@ public:
     void        push(const std::string& value);
     void        push(double value);
     std::string extractData();
+    template <typename T>
+    SerializationCoder& operator<<(const T& v)
+    {
+        push(v);
+        return *this;
+    }
+    SerializationCoder& operator<<(const int& v)
+    {
+        push(static_cast<int64_t>(v));
+        return *this;
+    }
 
 private:
     void append(SerializationType type, const void* data, size_t size);
