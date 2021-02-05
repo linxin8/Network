@@ -8,17 +8,12 @@
 #include <type_traits>
 
 // not thread safe
-// circle tcp buffer, data are stored by up to 2 continous spaces
+// dynamic circle tcp buffer, data are stored by up to 2 continous spaces
 class TcpBuffer
 {
     static_assert(std::endian::native ==
                   std::endian::little);  // assure local is little endian
-private:
-    static inline constexpr size_t _smallBufferSize = 8 * 1024;         // 8k
-    static inline constexpr size_t _largeBufferSize = 2 * 1024 * 1024;  // 2M
 public:
-    TcpBuffer(size_t size = _smallBufferSize) : _queue{size} {}
-
     // return continous size of data can be read from first element
     size_t getContinousSize() const
     {
@@ -92,8 +87,6 @@ public:
         return _queue.getSize();
     }
 
-    // assume size is enougth
-    // must check avaliable size before call
     template <typename T>
     void append(const T& x)
     {
@@ -102,25 +95,14 @@ public:
         append(&x, sizeof(T));
     }
 
+    void append(const std::string& string)
+    {
+        _queue.push(string.c_str(), string.size());
+    }
+
     void append(const void* data, size_t size)
     {
         _queue.push(data, size);
-    }
-
-    // {wirting address, max size}
-    // used for direct wirte for avoid copying buffer data
-    // must call endDirectWrite once writing is finished
-    std::pair<char*, size_t> beginDirectWrite()
-    {
-        return _queue.beginDirectWrite();
-    }
-
-    // used for direct wirte for avoid copying buffer data
-    // must be called after beginDirectWrite
-    // writtenSize is size of data that have been writed
-    void endDirectWrite(size_t writtenSize)
-    {
-        _queue.endDirectWrite(writtenSize);
     }
 
 private:

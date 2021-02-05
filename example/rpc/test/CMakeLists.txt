@@ -6,3 +6,9 @@ target_link_libraries(serialization ${GTEST_LIBRARIES} net rpc)
  
 add_executable(message message.cpp)
 target_link_libraries(message ${GTEST_LIBRARIES} net rpc)
+
+add_executable(rpc_server rpc_server.cpp)
+target_link_libraries(rpc_server net rpc)
+
+add_executable(rpc_client rpc_client.cpp)
+target_link_libraries(rpc_client net rpc)

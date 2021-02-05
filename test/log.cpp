@@ -57,7 +57,7 @@ void logFun(AsyncLogger& asyn, bool& ok)
         // data[size]  = '\n';
         // asyn.append(data, size);
         // std::this_thread::sleep_for(std::chrono::microseconds{1});
-        LogBuffer buffer = LogBufferPool::getBuffer(23);
+        LogBuffer buffer = LogBufferPool::getBuffer();
         buffer.append(
             "12345678910!@"
             "1111111111111111111111111111111111111111111111111111111111"

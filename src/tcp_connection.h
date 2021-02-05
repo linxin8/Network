@@ -18,9 +18,16 @@ public:
     // send size-fixed data asynchronously
     void sendAsyn(const void* data, size_t size);
 
+    // send data asynchronously
+    void sendAsyn(const std::string& data);
+
     // receive the data with the maximun size
     // return acctually size of data received
     size_t recv(void* data, size_t maxSize);
+
+    // receive the data and append to buffer tail
+    // return acctually size of data received
+    size_t recv(std::string& buffer);
 
     // receive all data buffered
     std::string recvAll();

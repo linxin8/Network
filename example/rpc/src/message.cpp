@@ -1,6 +1,15 @@
 #include "message.h"
 
-std::string Message::toString()
+Message::Message(
+    std::initializer_list<std::pair<const std::string, std::string>>
+        init_list) :
+    _map{
+        std::move(init_list),
+    }
+{
+}
+
+std::string Message::toString() const
 {
     std::string header;
     std::string body;

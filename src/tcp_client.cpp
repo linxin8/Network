@@ -98,7 +98,7 @@ void TcpClient::onRead()
     }
 }
 
-void TcpClient::send(const std::string data)
+void TcpClient::sendAsyn(const std::string data)
 {
     LOG_ASSERT(_isConnected);
     if (data.empty())
@@ -108,6 +108,20 @@ void TcpClient::send(const std::string data)
     _thread.exec([con = _connection, d = std::move(data)] {
         con->sendAsyn(d.c_str(), d.size());
     });
+}
+void TcpClient::read(std::string& buffer)
+{
+    bool ok = false;
+    _thread.exec([&recvBuffer = _recvBuffer, &buffer, &ok] {
+        buffer.append(std::move(recvBuffer));
+        recvBuffer.clear();
+        ok = true;
+    });
+
+    while (!ok)
+    {
+        std::this_thread::yield();
+    }
 }
 
 std::string TcpClient::read()

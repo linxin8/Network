@@ -22,9 +22,11 @@ public:
     }
 
     // block until all data is writen on send buffer
-    void send(std::string data);
-    // read all buffer
+    void sendAsyn(std::string data);
+    // read all data
     std::string read();
+    // read all data and append to buffer
+    void read(std::string& buffer);
 
 private:
     void onRead();

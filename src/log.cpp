@@ -15,11 +15,12 @@ AsyncLogger::AsyncLogger() :
 
 void AsyncLogger::append(LogBuffer buffer)
 {
-    // or just print to stdout
-    fprintf(stdout,
-            "%*s",
-            static_cast<int>(buffer.size()),
-            static_cast<char*>(buffer.rawData()));
+    {
+        // // or just print to stdout
+        std::printf("%.*s",
+                    static_cast<int>(buffer.size()),
+                    static_cast<char*>(buffer.rawData()));
+    }
     // if not running , just discard data
     if (!_isRunning)
     {

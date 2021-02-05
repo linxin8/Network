@@ -31,6 +31,18 @@ void TcpConnection::sendAsyn(const void* data, size_t size)
     }
 }
 
+void TcpConnection::sendAsyn(const std::string& data)
+{
+    if (data.size())
+    {
+        if (!_channel.isEnbleWrite())
+        {
+            _channel.enableWrite();
+        }
+        _sendBuffer.append(data);
+    }
+}
+
 std::string TcpConnection::recvAll()
 {
     char        buffer[1024];
@@ -62,11 +74,23 @@ size_t TcpConnection::recv(void* data, size_t maxSize)
     return copyedSize;
 }
 
+size_t TcpConnection::recv(std::string& data)
+{
+    size_t copyedSize = 0;
+    while (_recvBuffer.getContinousSize() != 0)
+    {
+        size_t size = _recvBuffer.getContinousSize();
+        data.append(_recvBuffer.getFirstAddress(), size);
+        _recvBuffer.popN(size);
+        copyedSize += size;
+    }
+    return copyedSize;
+}
+
 void TcpConnection::onRead()
 {
-    auto [address, maxSize] = _recvBuffer.beginDirectWrite();
-    ssize_t size            = _socket.recvNonblocking(address, maxSize);
-    _recvBuffer.endDirectWrite(std::max(static_cast<ssize_t>(0), size));
+    char    buffer[1024];
+    ssize_t size = _socket.recvNonblocking(buffer, 1024);
     if (size == -1)
     {
         onError(errno);
@@ -78,6 +102,7 @@ void TcpConnection::onRead()
     }
     else if (size > 0)
     {
+        _recvBuffer.append(buffer, size);
         if (_onReadyToRead)
         {
             _onReadyToRead(shared_from_this());

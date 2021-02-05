@@ -8,7 +8,12 @@ class Message
 public:
     Message()          = default;
     Message(Message&&) = default;
+    Message(std::initializer_list<std::pair<const std::string, std::string>>
+                init_list);
+
     Message(std::map<std::string, std::string> map) : _map{std::move(map)} {}
+
+    Message& operator=(Message&& m) = default;
 
     // insert or update if not exist
     void set(const std::string& key, const std::string& value)
@@ -35,9 +40,10 @@ public:
         return _map[str];
     }
 
-    std::string toString();
+    std::string toString() const;
 
     std::string toReadableString();
+
     // check if any message is contained
     static bool containsMessage(const std::string& string)
     {

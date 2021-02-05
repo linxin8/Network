@@ -8,13 +8,14 @@
 TEST(TcpClient, resovle)
 {
     TcpClient client;
-    auto [ok, address] = InetAddress::resolve("127.0.0.1", 9001);
+    auto [ok, address] = InetAddress::resolve("127.0.0.1", 2019);
     GTEST_ASSERT_EQ(ok, true);
     LOG_INFO() << address.getIp4String() << " " << address.getPort();
     // client.setOnReadyToRead([&] {
     //     auto data = client.read();
     //     LOG_INFO() << "recv data: " << data;
     // });
+    client.setOnReadyToRead([&]() { LOG_DEBUG() << client.read(); });
     ok = client.connectTo(address);
     GTEST_ASSERT_EQ(ok, true);
     // client.send("23333");
@@ -22,10 +23,10 @@ TEST(TcpClient, resovle)
     auto begin = rand();
     for (int i = 0; i < 100; i++)
     {
-        client.send(std::to_string(i) + " " + std::to_string(begin) + "\n");
+        client.sendAsyn(std::to_string(i) + " " + std::to_string(begin) + "\n");
         begin++;
-        LOG_INFO() << client.read();
     }
+    CurrentThread::sleeps(3);
     // LOG_INFO() << client.read();
 }
 
