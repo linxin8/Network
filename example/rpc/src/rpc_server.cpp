@@ -31,7 +31,7 @@ void RPCServer::onNewMessage(std::shared_ptr<TcpConnection> con,
     {
         Message reply;
         reply["status"] = "error";
-        reply["error"]  = std::string("function ") + fun + "not found";
+        reply["error"]  = std::string("function ") + fun + " not found";
         con->sendAsyn(message.toString());
     }
 }

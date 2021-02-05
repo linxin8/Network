@@ -61,6 +61,22 @@ public:
         return _map;
     }
 
+    static Message createErrorMessage(std::string errorInfo)
+    {
+        Message m;
+        m.set("status", "error");
+        m.set("error", errorInfo);
+        return std::move(m);
+    }
+
+    static Message createResultMessage(std::string result)
+    {
+        Message m;
+        m.set("status", "ok");
+        m.set("result", result);
+        return std::move(m);
+    }
+
 private:
     static int getNextMessageLength(const std::string& string);
 
