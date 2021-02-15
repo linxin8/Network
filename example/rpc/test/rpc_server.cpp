@@ -15,7 +15,7 @@ std::string getTime()
     return str;
 }
 
-Message rpc_add(Message arg)
+Message rpcAdd(Message arg)
 {
     LOG_ASSERT(arg["fun"] == "add");
     Message reply;
@@ -45,10 +45,16 @@ Message rpc_add(Message arg)
     return std::move(reply);
 }
 
+Message rpcGetTime(Message)
+{
+    return Message::createResultMessage(getTime());
+}
+
 int main()
 {
     RPCServer server{2019};
-    server.registerFuction("add", rpc_add);
+    server.registerFuction("add", rpcAdd);
+    server.registerFuction("add", rpcGetTime);
     while (true)
     {
         CurrentThread::sleep(1000);

@@ -38,5 +38,13 @@ int main()
     LOG_DEBUG() << "test case" << frequency << "call time"
                 << t2.sub(t1).second() << "call asyn time"
                 << t3.sub(t1).second();
+
+    LOG_DEBUG() << "test get time fun"
+                << client.call("get_time", {}).toReadableString();
+    LOG_DEBUG() << "test ping fun"
+                << client.call("ping", {}).toReadableString();
+    LOG_DEBUG()
+        << "test echo fun"
+        << client.call("echo", {{"arg0", "2333ababa23333"}}).toReadableString();
     return 0;
 }

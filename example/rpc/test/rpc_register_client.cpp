@@ -14,6 +14,21 @@ int main()
         return Message::createResultMessage(std::to_string(c));
     });
 
+    server.registerFuction("ping", [](Message message) {
+        return Message::createResultMessage("pong");
+    });
+
+    server.registerFuction("echo", [](Message message) {
+        return Message::createResultMessage(message["arg0"]);
+    });
+
+    server.registerFuction("get_time", [](Message message) {
+        auto now = TimePoint::now();
+        char str[60];
+        sprintf(str, "%d:%d:%d", now.hours(), now.minute(), now.second());
+        return Message::createResultMessage(str);
+    });
+
     while (true)
     {
         CurrentThread::sleeps(1000);
