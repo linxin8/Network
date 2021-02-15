@@ -17,10 +17,13 @@ public:
         _threadPool.setThreadNumber(number);
     }
 
+    // multi-thread callback, must check thread safe
     void setOnNewConnection(std::function<void()> onNewConnection)
     {
         _onNewConnection = std::move(onNewConnection);
     }
+
+    // multi-thread callback, must check thread safe
     void setOnReadyToRead(
         std::function<void(std::shared_ptr<TcpConnection>)> onReadyToRead)
     {

@@ -25,4 +25,5 @@ private:
     std::map<std::string, std::function<Message(Message)>> _functionHandle;
     std::map<std::shared_ptr<TcpConnection>, std::string>  _recvBuffer;
     TcpServer                                              _server;
+    std::mutex                                             _mutex;
 };

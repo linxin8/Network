@@ -6,8 +6,9 @@
 class Message
 {
 public:
-    Message()          = default;
-    Message(Message&&) = default;
+    Message()               = default;
+    Message(const Message&) = default;
+    Message(Message&&)      = default;
     Message(std::initializer_list<std::pair<const std::string, std::string>>
                 init_list);
 
@@ -32,6 +33,16 @@ public:
     bool contains(const std::string& key) const
     {
         return _map.contains(key);
+    }
+
+    void erase(const std::string& key)
+    {
+        _map.erase(key);
+    }
+
+    std::string extract(const std::string& key)
+    {
+        return _map.extract(key).mapped();
     }
 
     //  get value of key, insert empty string if key not exist

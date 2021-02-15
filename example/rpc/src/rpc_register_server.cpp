@@ -46,5 +46,9 @@ Message RPCRegisterServer::query(Message message)
         return Message::createErrorMessage("address not exist");
     }
     auto& info = _addressMap[funName];
+    if (info.expirationTime < TimePoint::now())
+    {
+        return Message::createErrorMessage("address expired");
+    }
     return {{"status", "ok"}, {"ip", info.ip}, {"port", info.port}};
 }

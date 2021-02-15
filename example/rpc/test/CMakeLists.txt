@@ -12,3 +12,9 @@ target_link_libraries(rpc_server net rpc)
 
 add_executable(rpc_client rpc_client.cpp)
 target_link_libraries(rpc_client net rpc)
+
+add_executable(rpc_register_client rpc_register_client.cpp)
+target_link_libraries(rpc_register_client net rpc)
+
+add_executable(rpc_register_server rpc_register_server.cpp)
+target_link_libraries(rpc_register_server net rpc)

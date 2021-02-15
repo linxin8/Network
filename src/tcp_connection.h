@@ -13,6 +13,10 @@ class TcpConnection : Noncopyable,
 {
 public:
     TcpConnection(Socket socket);
+    ~TcpConnection()
+    {
+        close();
+    }
 
 public:
     // send size-fixed data asynchronously

@@ -98,7 +98,7 @@ void TcpConnection::onRead()
     else if (size == 0)
     {
         // orderly shutdown of the connection
-        onClose();
+        close();
     }
     else if (size > 0)
     {
@@ -144,11 +144,10 @@ void TcpConnection::onClose()
     {
         _onClose();
     }
-    _channel.disableReadAndWrite();
-    _socket.close();
 }
 
 void TcpConnection::close()
 {
-    onClose();
+    _channel.disableReadAndWrite();
+    _socket.close();
 }

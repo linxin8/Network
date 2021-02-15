@@ -1,34 +1,69 @@
 #include "rpc_register_client.h"
 #include "message.h"
-RPCRegisterClient::RPCRegisterClient(std::string localIp,
-                                     uint16_t    localPort,
-                                     std::string remoteIp,
+RPCRegisterClient::RPCRegisterClient(std::string remoteIp,
                                      uint16_t    remotePort) :
-    _client{std::move(remoteIp), remotePort},
-    _localIp{std::move(_localIp)},
-    _localPort{std::move(_localPort)}
+    _client{remoteIp, remotePort}
 {
+    _timerThread.start();
+    _timerThread.exec(std::bind(&RPCRegisterClient::timer, this));
 }
 
-void RPCRegisterClient::registerFun(std::string fun)
+void RPCRegisterClient::timer()
+{
+    const int period = 1000;
+    while (true)
+    {
+        Message m;
+        {
+            std::lock_guard<std::mutex> guard{_mutex};
+            for (auto& fun : _registeredFun)
+            {
+                _client.callAsyn("register", fun);
+            }
+        }
+        CurrentThread::sleeps(period);
+    }
+}
+
+void RPCRegisterClient::registerFun(std::string fun,
+                                    std::string ip,
+                                    uint16_t    port)
 {
     Message m;
     m["register_fun"] = std::move(fun);
-    m["ip"]           = "localhost";
-    m["port"]         = std::to_string(2020);
-    _client.call("register", std::move(m));
+    m["ip"]           = ip;
+    m["port"]         = std::to_string(port);
+    {
+        std::lock_guard<std::mutex> guard{_mutex};
+        _registeredFun.emplace_back(std::move(m));
+    }
 }
 
-void RPCRegisterClient::unregisterFun(std::string fun)
+bool RPCRegisterClient::unregisterFun(std::string fun)
 {
-    Message m;
-    m["unregister_fun"] = fun;
-    _client.call("unregister", std::move(m));
+    std::lock_guard<std::mutex> guard{_mutex};
+    auto                        it =
+        std::find_if(_registeredFun.begin(),
+                     _registeredFun.end(),
+                     [&fun](auto& x) { return x["register_fun"] == fun; });
+    if (it != _registeredFun.end())
+    {
+        _registeredFun.erase(it);
+        return true;
+    }
+    return false;
 }
 
 InetAddress RPCRegisterClient::query(std::string fun)
 {
     Message m;
     m["query_fun"] = fun;
-    _client.call("unregister", std::move(m));
+    m              = _client.call("unregister", std::move(m));
+    LOG_ASSERT(m.contains("ip"));
+    LOG_ASSERT(m.contains("port"));
+    auto ip           = m["ip"];
+    auto port         = std::stoi(m["port"]);
+    auto&& [ok, addr] = InetAddress::resolve(ip, static_cast<uint16_t>(port));
+    LOG_ASSERT(ok);
+    return addr;
 }

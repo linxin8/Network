@@ -58,6 +58,12 @@ public:
         int64_t delta = static_cast<int64_t>(seconds * _microSecondPerSecond);
         return {_epochTime - delta};
     }
+
+    TimePoint sub(TimePoint timePoint)
+    {
+        return {_epochTime - timePoint._epochTime};
+    }
+
     double difference(TimePoint time) const
     {
         return static_cast<double>(_epochTime - time._epochTime);
@@ -87,7 +93,7 @@ public:
     }
 
 private:
-    static constexpr int64_t _microSecondPerSecond = 1000 * 1000;
+    inline static constexpr const int64_t _microSecondPerSecond = 1000 * 1000;
     //  time since epoch
     int64_t _epochTime;
 };

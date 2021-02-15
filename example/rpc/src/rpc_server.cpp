@@ -2,7 +2,7 @@
 #include "../../../src/tcp_server.h"
 #include "message.h"
 
-RPCServer::RPCServer(uint16_t port) : _functionHandle{}, _server{port}
+RPCServer::RPCServer(uint16_t port) : _functionHandle{}, _server{port}, _mutex{}
 {
     _server.setOnReadyToRead(
         std::bind(&RPCServer::onReadyToRead, this, std::placeholders::_1));
@@ -38,11 +38,19 @@ void RPCServer::onNewMessage(std::shared_ptr<TcpConnection> con,
 
 void RPCServer::onReadyToRead(std::shared_ptr<TcpConnection> con)
 {
+    _mutex.lock();
     auto& data = _recvBuffer[con];
+    _mutex.unlock();
     con->recv(data);
     while (Message::containsMessage(data))
     {
         Message m = Message::extractString(data);
+        if (data.empty())
+        {
+            _mutex.lock();
+            _recvBuffer.erase(con);
+            _mutex.unlock();
+        }
         onNewMessage(con, std::move(m));
     }
 };

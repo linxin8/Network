@@ -1,22 +1,26 @@
 #pragma once
 #include "rpc_client.h"
+#include <set>
 
 class RPCRegisterClient
 {
-    RPCRegisterClient(std::string localIp,
-                      uint16_t    localPort,
-                      std::string remoteIp,
-                      uint16_t    remotePort);
+public:
+    RPCRegisterClient(std::string remoteIp, uint16_t remotePort);
 
 public:
-    void        onReadyToRead();
-    Message     onNewMessage(Message m);
-    void        registerFun(std::string fun);
-    void        unregisterFun(std::string fun);
+    void    onReadyToRead();
+    Message onNewMessage(Message m);
+    void    registerFun(std::string fun, std::string ip, uint16_t port);
+    // return if fun existed
+    bool        unregisterFun(std::string fun);
     InetAddress query(std::string fun);
 
 private:
-    RPCClient   _client;
-    std::string _localIp;
-    uint16_t    _localPort;
+    void timer();
+
+private:
+    EventLoopThread      _timerThread;
+    std::vector<Message> _registeredFun;
+    RPCClient            _client;
+    std::mutex           _mutex;
 };

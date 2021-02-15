@@ -556,7 +556,7 @@ public:
         {
             return _size - _start;
         }
-        return _end - _start;
+        return _length;
     }
 
     // remove continous size of data can be read from first element

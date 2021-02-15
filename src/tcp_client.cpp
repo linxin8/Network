@@ -9,11 +9,23 @@ TcpClient::TcpClient() :
     _onSend{},
     _recvBuffer{},
     _sendBuffer{},
-    _thread{[] {}, "client network"},
+    _thread{[] {
+        static EventLoopThread* thread = nullptr;
+        if (thread == nullptr)
+        {
+            static std::mutex           mutex;
+            std::lock_guard<std::mutex> _guard{mutex};
+            if (thread == nullptr)
+            {
+                thread = new EventLoopThread([] {}, "client network thread");
+                thread->start();
+            }
+        }
+        return thread;
+    }()},
     _isConnected{},
     _connection{}
 {
-    _thread.start();
 }
 
 bool TcpClient::connectTo(InetAddress address)
@@ -23,8 +35,14 @@ bool TcpClient::connectTo(InetAddress address)
     if (ok)
     {
         _connection = std::make_shared<TcpConnection>(std::move(socket));
-        _connection->setEventLoop(_thread.getEventLoop());
-        _connection->enableRead();
+        CountDownLatch latch{1};
+        _thread->exec(
+            [con = _connection, ep = _thread->getEventLoop(), &latch] {
+                con->setEventLoop(ep);
+                con->enableRead();
+                latch.countDown();
+            });
+        latch.wait();
         onConnected();
     }
     return ok;
@@ -105,14 +123,15 @@ void TcpClient::sendAsyn(const std::string data)
     {
         return;
     }
-    _thread.exec([con = _connection, d = std::move(data)] {
+    _thread->exec([con = _connection, d = std::move(data)] {
         con->sendAsyn(d.c_str(), d.size());
     });
 }
 void TcpClient::read(std::string& buffer)
 {
+    LOG_ASSERT(_isConnected);
     bool ok = false;
-    _thread.exec([&recvBuffer = _recvBuffer, &buffer, &ok] {
+    _thread->exec([&recvBuffer = _recvBuffer, &buffer, &ok] {
         buffer.append(std::move(recvBuffer));
         recvBuffer.clear();
         ok = true;
@@ -128,26 +147,17 @@ std::string TcpClient::read()
 {
     LOG_ASSERT(_isConnected);
 
-    // while (_recvBuffer.size() == 0)
-    // {
-    //     std::this_thread::yield();
-    // }
-
-    std::string data;
-    bool        ok = false;
-    _thread.exec([&buffer = _recvBuffer, &data, &ok] {
+    std::string    data;
+    CountDownLatch latch{1};
+    _thread->exec([&buffer = _recvBuffer, &data, &latch] {
         data = std::move(buffer);
-        ok   = true;
+        latch.countDown();
     });
-
-    while (!ok)
-    {
-        std::this_thread::yield();
-    }
+    latch.wait();
     return std::move(data);
 }
 
 void TcpClient::disconnect()
 {
-    _connection->close();
+    _thread->exec([con = _connection] { con->close(); });
 }
